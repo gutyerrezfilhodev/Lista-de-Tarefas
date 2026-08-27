@@ -626,7 +626,7 @@
 
   const STORAGE_KEY = 'lista-de-tarefas-gutyerrez';
 
-  async function saveToStorage() {
+async function saveToStorage() {
     try {
       await window.storage.set(STORAGE_KEY, JSON.stringify({ boards, nextBoardId }), false);
     } catch (err) {
