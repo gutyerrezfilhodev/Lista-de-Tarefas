@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lista de Tarefas </title>
+<title>Lista de Tarefas - Gutyerrez Filho</title>
 <style>
   :root {
     --bg: #1b1d22;
@@ -36,19 +36,7 @@
 
   .app {
     width: 100%;
-    max-width: 880px;
-  }
-
-  .columns {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-  }
-
-  @media (max-width: 640px) {
-    .columns {
-      grid-template-columns: 1fr;
-    }
+    max-width: 1100px;
   }
 
   h1 {
@@ -63,20 +51,123 @@
     margin-bottom: 28px;
   }
 
-  form {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 32px;
+  /* ---- Layout principal: caixinhas à esquerda, diário à direita ---- */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 24px;
+    align-items: start;
   }
 
-  input[type="text"] {
-    flex: 1;
+  @media (max-width: 800px) {
+    .main-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .boards-column {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* ---- Caixinha de lista ---- */
+  .board-box {
     background: var(--panel);
     border: 1px solid var(--line);
-    color: var(--ink);
-    padding: 12px 14px;
-    border-radius: 8px;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .board-box-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px;
+    cursor: pointer;
+  }
+
+  .board-box-header:hover { background: rgba(255,255,255,0.02); }
+
+  .board-name-text {
+    flex: 1;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    word-break: break-word;
+  }
+
+  .board-rename-input {
+    flex: 1;
     font-size: 0.95rem;
+    font-weight: 600;
+    padding: 6px 8px;
+  }
+
+  .board-mini-stats {
+    font-size: 0.68rem;
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .rename-btn, .board-delete-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+    padding: 3px 4px;
+    flex-shrink: 0;
+    transition: color 0.15s ease;
+  }
+
+  .rename-btn:hover { color: var(--accent); }
+  .board-delete-btn:hover { color: var(--danger); }
+
+  .board-box-body {
+    padding: 0 16px 16px;
+    border-top: 1px solid var(--line);
+  }
+
+  .mini-task-form {
+    display: flex;
+    gap: 8px;
+    margin: 14px 0;
+  }
+
+  .new-board-card {
+    background: transparent;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.9rem;
+    min-height: 60px;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .new-board-card:hover {
+    border-color: var(--accent-dim);
+    background: rgba(110, 231, 183, 0.06);
+  }
+
+  /* ---- Formulário / inputs ---- */
+  input[type="text"] {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
     outline: none;
     transition: border-color 0.15s ease;
   }
@@ -89,19 +180,15 @@
     background: var(--accent);
     color: #12241c;
     border: none;
-    padding: 0 20px;
+    padding: 0 18px;
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     transition: filter 0.15s ease;
   }
 
   button.add-btn:hover { filter: brightness(1.08); }
-
-  section {
-    margin-bottom: 28px;
-  }
 
   h2 {
     font-size: 0.75rem;
@@ -136,11 +223,11 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    background: var(--panel);
+    background: var(--bg);
     border: 1px solid var(--line);
     border-left: 4px solid var(--pri-none);
     border-radius: 10px;
-    padding: 12px 14px;
+    padding: 10px 12px;
     animation: appear 0.18s ease;
   }
 
@@ -149,17 +236,92 @@
   li.pri-blue { border-left-color: var(--pri-blue); }
   li.pri-green { border-left-color: var(--pri-green); }
 
+  @keyframes appear {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .index {
+    min-width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--muted);
+    background: rgba(255,255,255,0.04);
+    border-radius: 6px;
+  }
+
+  .check-btn {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-dim);
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s ease;
+  }
+
+  .check-btn:hover { background: rgba(110, 231, 183, 0.15); }
+
+  .task-text {
+    flex: 1;
+    font-size: 0.88rem;
+    word-break: break-word;
+  }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 4px;
+    transition: color 0.15s ease;
+  }
+
+  .delete-btn:hover { color: var(--danger); }
+
+  .edit-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1;
+    padding: 4px;
+    transition: color 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .edit-btn:hover { color: var(--accent); }
+
+  .edit-input {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--accent-dim);
+    color: var(--ink);
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    outline: none;
+  }
+
   .priority-select {
     border: none;
     border-radius: 6px;
-    padding: 4px 6px;
-    font-size: 0.7rem;
+    padding: 3px 5px;
+    font-size: 0.65rem;
     font-weight: 600;
     cursor: pointer;
     outline: none;
     color: #12141a;
     flex-shrink: 0;
-    max-width: 92px;
+    max-width: 82px;
   }
 
   .move-group {
@@ -174,7 +336,7 @@
     border: none;
     color: var(--muted);
     cursor: pointer;
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     line-height: 1;
     padding: 1px 3px;
     transition: color 0.15s ease;
@@ -187,101 +349,133 @@
     cursor: default;
   }
 
-  @keyframes appear {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
+  .empty-msg {
+    color: var(--muted);
+    font-size: 0.8rem;
+    padding: 14px 0;
+    text-align: center;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
   }
 
-  .index {
-    min-width: 24px;
-    height: 24px;
+  /* ---- Coluna do diário (única, fora das caixinhas) ---- */
+  .diary-column {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--muted);
-    background: rgba(255,255,255,0.04);
-    border-radius: 6px;
+    flex-direction: column;
+    gap: 20px;
   }
 
-  .check-btn {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 2px solid var(--accent-dim);
-    background: transparent;
-    cursor: pointer;
+  .diary-panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .hour-timeline {
+    display: flex;
+    flex-direction: column;
+    max-height: 640px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .hour-row {
+    display: flex;
+    gap: 12px;
+    padding: 8px 4px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .hour-row:last-child { border-bottom: none; }
+
+  .hour-label {
+    min-width: 40px;
     flex-shrink: 0;
-    transition: background 0.15s ease;
-  }
-
-  .check-btn:hover { background: rgba(110, 231, 183, 0.15); }
-
-  .task-text {
-    flex: 1;
-    font-size: 0.95rem;
-    word-break: break-word;
-  }
-
-  .delete-btn {
-    background: none;
-    border: none;
+    font-size: 0.75rem;
+    font-weight: 700;
     color: var(--muted);
-    cursor: pointer;
-    font-size: 1.1rem;
-    line-height: 1;
-    padding: 4px;
-    transition: color 0.15s ease;
+    padding-top: 2px;
   }
 
-  .delete-btn:hover { color: var(--danger); }
-
-  /* Done section */
-  #done-list li {
-    opacity: 0.6;
-  }
-
-  #done-list .task-text {
-    text-decoration: line-through;
-    color: var(--muted);
-  }
-
-  #done-list .index {
-    background: rgba(110, 231, 183, 0.1);
+  .hour-row.has-tasks .hour-label {
     color: var(--accent);
   }
 
-  .edit-btn {
-    background: none;
-    border: none;
+  .hour-tasks {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .hour-empty {
     color: var(--muted);
-    cursor: pointer;
-    font-size: 0.95rem;
-    line-height: 1;
-    padding: 4px;
-    transition: color 0.15s ease;
+    font-size: 0.8rem;
+    opacity: 0.5;
+  }
+
+  .hour-task {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 10px;
+  }
+
+  .hour-task .hour-time {
+    font-size: 0.7rem;
+    color: var(--muted);
     flex-shrink: 0;
   }
 
-  .edit-btn:hover { color: var(--accent); }
-
-  .task-text.editing {
-    display: none;
-  }
-
-  .edit-input {
+  .hour-task .task-text {
+    font-size: 0.85rem;
+    text-decoration: line-through;
+    color: var(--muted);
     flex: 1;
-    background: var(--bg);
-    border: 1px solid var(--accent-dim);
-    color: var(--ink);
-    padding: 6px 8px;
-    border-radius: 6px;
-    font-size: 0.95rem;
-    outline: none;
   }
 
-  /* Modal */
+  .hour-task-board {
+    font-size: 0.65rem;
+    color: var(--accent);
+    background: rgba(110, 231, 183, 0.1);
+    border-radius: 999px;
+    padding: 2px 8px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .report-total {
+    font-size: 0.85rem;
+    color: var(--ink);
+    margin: 0 0 14px;
+  }
+
+  .report-total strong { color: var(--accent); }
+
+  .report-hour-block {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.85rem;
+  }
+
+  .report-hour-block:last-child { border-bottom: none; }
+
+  .report-hour-block .report-hour-label {
+    font-weight: 700;
+    color: var(--accent);
+    margin-right: 6px;
+  }
+
+  .report-hour-block .report-tasks {
+    color: var(--ink);
+  }
+
+  /* ---- Modais ---- */
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -314,6 +508,11 @@
     color: var(--ink);
   }
 
+  .modal-box input[type="text"] {
+    width: 100%;
+    margin-bottom: 16px;
+  }
+
   .modal-actions {
     display: flex;
     gap: 10px;
@@ -342,14 +541,6 @@
     background: var(--line);
     color: var(--ink);
   }
-  .empty-msg {
-    color: var(--muted);
-    font-size: 0.85rem;
-    padding: 16px 0;
-    text-align: center;
-    border: 1px dashed var(--line);
-    border-radius: 10px;
-  }
 </style>
 </head>
 <body>
@@ -358,27 +549,26 @@
   <h1>Lista de Tarefas - Gutyerrez Filho</h1>
   <p class="subtitle" id="date-subtitle"></p>
 
-  <form id="task-form">
-    <input type="text" id="task-input" placeholder="O que você precisa fazer?" autocomplete="off" required>
-    <button type="submit" class="add-btn">Adicionar</button>
-  </form>
+  <div class="main-grid">
+    <div class="boards-column" id="boards-column"></div>
 
-  <div class="columns">
-    <section>
-      <h2>Pendentes <span class="count" id="pending-count">0</span></h2>
-      <ul id="pending-list"></ul>
-    </section>
+    <div class="diary-column">
+      <div class="diary-panel">
+        <h2>Diário de horários <span class="count" id="diary-count">0</span></h2>
+        <div class="hour-timeline" id="hour-timeline"></div>
+      </div>
 
-    <section>
-      <h2>Concluídas <span class="count" id="done-count">0</span></h2>
-      <ul id="done-list"></ul>
-    </section>
+      <div class="diary-panel">
+        <h2>Relatório diário</h2>
+        <div id="report-content"></div>
+      </div>
+    </div>
   </div>
 </div>
 
 <div class="modal-overlay" id="confirm-modal">
   <div class="modal-box">
-    <p>Essa tarefa foi realmente concluída?</p>
+    <p id="confirm-message">Essa tarefa foi realmente concluída?</p>
     <div class="modal-actions">
       <button class="modal-yes" id="confirm-yes">Sim</button>
       <button class="modal-no" id="confirm-no">Não</button>
@@ -386,19 +576,30 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="new-board-modal">
+  <div class="modal-box">
+    <p>Nome da nova lista de tarefas:</p>
+    <input type="text" id="new-board-input" placeholder="Ex: Trabalho, Casa, Faculdade..." autocomplete="off">
+    <div class="modal-actions">
+      <button class="modal-yes" id="new-board-confirm">Criar</button>
+      <button class="modal-no" id="new-board-cancel">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <script>
-  let tasks = [];
-  let doneTasks = [];
-  let nextId = 1;
+  // ---- Estado global ----
+  let boards = [];          // [{ id, name, tasks:[], doneTasks:[], nextId }]
+  let nextBoardId = 1;
+  let expandedBoardId = null;
 
   const PRIORITY_ORDER = ['red', 'yellow', 'blue', 'green', null];
-  const PRIORITY_LABELS = { red: 'Urgente', yellow: 'Média', blue: 'Baixa', green: 'Adiável', null: 'Sem cor' };
   const PRIORITY_COLORS = { red: '#e2685f', yellow: '#e0b93f', blue: '#4f9fe8', green: '#5fd88a', null: '#4a4e58' };
 
   const STORAGE_KEY = 'lista-de-tarefas-gutyerrez';
 
   function saveToStorage() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ tasks, doneTasks, nextId }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ boards, nextBoardId }));
   }
 
   function loadFromStorage() {
@@ -406,217 +607,505 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
       const data = JSON.parse(raw);
-      tasks = Array.isArray(data.tasks) ? data.tasks : [];
-      doneTasks = Array.isArray(data.doneTasks) ? data.doneTasks : [];
-      nextId = typeof data.nextId === 'number' ? data.nextId : 1;
-      // garante que nada fique preso em modo de edição ao recarregar
-      tasks.forEach(t => { t.editing = false; if (t.priority === undefined) t.priority = null; });
-      sortTasks();
+
+      if (Array.isArray(data.boards)) {
+        boards = data.boards;
+        nextBoardId = typeof data.nextBoardId === 'number'
+          ? data.nextBoardId
+          : (Math.max(0, ...boards.map(b => b.id)) + 1);
+      } else if (Array.isArray(data.tasks) || Array.isArray(data.doneTasks)) {
+        // Migração de uma versão antiga (sem múltiplas listas)
+        boards = [{
+          id: 1,
+          name: 'Minhas tarefas',
+          tasks: Array.isArray(data.tasks) ? data.tasks : [],
+          doneTasks: Array.isArray(data.doneTasks) ? data.doneTasks : [],
+          nextId: typeof data.nextId === 'number' ? data.nextId : 1
+        }];
+        nextBoardId = 2;
+      }
+
+      boards.forEach(board => {
+        (board.tasks || []).forEach(t => {
+          t.editing = false;
+          if (t.priority === undefined) t.priority = null;
+        });
+      });
     } catch (err) {
-      console.error('Não foi possível carregar as tarefas salvas:', err);
+      console.error('Não foi possível carregar as listas salvas:', err);
     }
   }
 
-  const form = document.getElementById('task-form');
-  const input = document.getElementById('task-input');
-  const pendingList = document.getElementById('pending-list');
-  const doneList = document.getElementById('done-list');
-  const pendingCount = document.getElementById('pending-count');
-  const doneCount = document.getElementById('done-count');
+  const boardsColumn = document.getElementById('boards-column');
+  const hourTimeline = document.getElementById('hour-timeline');
+  const diaryCount = document.getElementById('diary-count');
+  const reportContent = document.getElementById('report-content');
 
-  const addBtn = document.querySelector('.add-btn');
-
-  function addTask() {
-    const text = input.value.trim();
-    if (!text) return;
-    tasks.push({ id: nextId++, text });
-    input.value = '';
-    input.focus();
-    render();
+  function getBoard(id) {
+    return boards.find(b => b.id === id);
   }
 
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    addTask();
-  });
-
-  addBtn.addEventListener('click', () => addTask());
-
+  // ---- Modal genérico de confirmação (Sim/Não) ----
   const confirmModal = document.getElementById('confirm-modal');
+  const confirmMessage = document.getElementById('confirm-message');
   const confirmYes = document.getElementById('confirm-yes');
   const confirmNo = document.getElementById('confirm-no');
-  let pendingCompleteId = null;
+  let confirmCallback = null;
 
-  function askComplete(id) {
-    pendingCompleteId = id;
+  function showConfirm(message, onYes) {
+    confirmMessage.textContent = message;
+    confirmCallback = onYes;
     confirmModal.classList.add('open');
   }
 
-  function closeModal() {
-    pendingCompleteId = null;
+  function closeConfirmModal() {
+    confirmCallback = null;
     confirmModal.classList.remove('open');
   }
 
   confirmYes.addEventListener('click', () => {
-    if (pendingCompleteId !== null) {
-      const idx = tasks.findIndex(t => t.id === pendingCompleteId);
-      if (idx !== -1) {
-        const [task] = tasks.splice(idx, 1);
-        doneTasks.push(task);
-        render();
-      }
-    }
-    closeModal();
+    const cb = confirmCallback;
+    closeConfirmModal();
+    if (cb) cb();
   });
-
-  confirmNo.addEventListener('click', closeModal);
+  confirmNo.addEventListener('click', closeConfirmModal);
   confirmModal.addEventListener('click', (e) => {
-    if (e.target === confirmModal) closeModal();
+    if (e.target === confirmModal) closeConfirmModal();
   });
 
-  function sortTasks() {
-    tasks.sort((a, b) => PRIORITY_ORDER.indexOf(a.priority || null) - PRIORITY_ORDER.indexOf(b.priority || null));
+  // ---- Modal de criação de nova lista ----
+  const newBoardModal = document.getElementById('new-board-modal');
+  const newBoardInput = document.getElementById('new-board-input');
+
+  function openNewBoardModal() {
+    newBoardInput.value = '';
+    newBoardModal.classList.add('open');
+    setTimeout(() => newBoardInput.focus(), 50);
   }
 
-  function setPriority(id, value) {
-    const task = tasks.find(t => t.id === id);
+  function closeNewBoardModal() {
+    newBoardModal.classList.remove('open');
+  }
+
+  function createBoard() {
+    const name = newBoardInput.value.trim();
+    if (!name) { newBoardInput.focus(); return; }
+    const board = { id: nextBoardId++, name, tasks: [], doneTasks: [], nextId: 1 };
+    boards.push(board);
+    expandedBoardId = board.id;
+    saveToStorage();
+    closeNewBoardModal();
+    renderAll();
+  }
+
+  document.getElementById('new-board-confirm').addEventListener('click', createBoard);
+  document.getElementById('new-board-cancel').addEventListener('click', closeNewBoardModal);
+  newBoardInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); createBoard(); }
+    if (e.key === 'Escape') closeNewBoardModal();
+  });
+  newBoardModal.addEventListener('click', (e) => {
+    if (e.target === newBoardModal) closeNewBoardModal();
+  });
+
+  function confirmDeleteBoard(id) {
+    const board = getBoard(id);
+    if (!board) return;
+    showConfirm(`Excluir a lista "${board.name}"? Essa ação não pode ser desfeita.`, () => {
+      boards = boards.filter(b => b.id !== id);
+      if (expandedBoardId === id) expandedBoardId = null;
+      saveToStorage();
+      renderAll();
+    });
+  }
+
+  // ---- Tarefas dentro de uma lista específica ----
+  function addTask(boardId, text) {
+    const board = getBoard(boardId);
+    if (!board || !text.trim()) return;
+    board.tasks.push({ id: board.nextId++, text: text.trim(), priority: null, editing: false });
+    saveToStorage();
+    renderAll();
+  }
+
+  function askComplete(boardId, taskId) {
+    showConfirm('Essa tarefa foi realmente concluída?', () => {
+      const board = getBoard(boardId);
+      if (!board) return;
+      const idx = board.tasks.findIndex(t => t.id === taskId);
+      if (idx !== -1) {
+        const [task] = board.tasks.splice(idx, 1);
+        task.completedAt = new Date().toISOString();
+        board.doneTasks.push(task);
+        saveToStorage();
+        renderAll();
+      }
+    });
+  }
+
+  function sortBoardTasks(board) {
+    board.tasks.sort((a, b) => PRIORITY_ORDER.indexOf(a.priority || null) - PRIORITY_ORDER.indexOf(b.priority || null));
+  }
+
+  function setPriority(boardId, taskId, value) {
+    const board = getBoard(boardId);
+    if (!board) return;
+    const task = board.tasks.find(t => t.id === taskId);
     if (!task) return;
     task.priority = value || null;
-    sortTasks();
-    render();
+    sortBoardTasks(board);
+    saveToStorage();
+    renderAll();
   }
 
-  function moveTask(id, direction) {
-    const idx = tasks.findIndex(t => t.id === id);
+  function moveTask(boardId, taskId, direction) {
+    const board = getBoard(boardId);
+    if (!board) return;
+    const idx = board.tasks.findIndex(t => t.id === taskId);
     if (idx === -1) return;
-    const current = tasks[idx].priority || null;
+    const current = board.tasks[idx].priority || null;
 
     if (direction === 'up') {
       const prevIdx = idx - 1;
-      if (prevIdx >= 0 && (tasks[prevIdx].priority || null) === current) {
-        [tasks[prevIdx], tasks[idx]] = [tasks[idx], tasks[prevIdx]];
-        render();
+      if (prevIdx >= 0 && (board.tasks[prevIdx].priority || null) === current) {
+        [board.tasks[prevIdx], board.tasks[idx]] = [board.tasks[idx], board.tasks[prevIdx]];
       }
     } else {
       const nextIdx = idx + 1;
-      if (nextIdx < tasks.length && (tasks[nextIdx].priority || null) === current) {
-        [tasks[idx], tasks[nextIdx]] = [tasks[nextIdx], tasks[idx]];
-        render();
+      if (nextIdx < board.tasks.length && (board.tasks[nextIdx].priority || null) === current) {
+        [board.tasks[idx], board.tasks[nextIdx]] = [board.tasks[nextIdx], board.tasks[idx]];
       }
     }
+    saveToStorage();
+    renderAll();
   }
 
-  function startEdit(id) {
-    const task = tasks.find(t => t.id === id);
+  function startEdit(boardId, taskId) {
+    const board = getBoard(boardId);
+    if (!board) return;
+    const task = board.tasks.find(t => t.id === taskId);
     if (!task) return;
     task.editing = true;
-    render();
+    renderAll();
   }
 
-  function saveEdit(id, newText) {
-    const task = tasks.find(t => t.id === id);
+  function saveEdit(boardId, taskId, newText) {
+    const board = getBoard(boardId);
+    if (!board) return;
+    const task = board.tasks.find(t => t.id === taskId);
     if (!task) return;
     const trimmed = newText.trim();
     if (trimmed) task.text = trimmed;
     task.editing = false;
-    render();
-  }
-
-  function deleteTask(id, fromDone) {
-    if (fromDone) {
-      doneTasks = doneTasks.filter(t => t.id !== id);
-    } else {
-      tasks = tasks.filter(t => t.id !== id);
-    }
-    render();
-  }
-
-  function render() {
     saveToStorage();
+    renderAll();
+  }
 
-    pendingCount.textContent = tasks.length;
-    doneCount.textContent = doneTasks.length;
-
-    pendingList.innerHTML = '';
-    if (tasks.length === 0) {
-      pendingList.innerHTML = '<li style="all:unset"><div class="empty-msg" style="width:100%">Nenhuma tarefa pendente. Adicione uma acima.</div></li>';
+  function deleteTask(boardId, taskId, fromDone) {
+    const board = getBoard(boardId);
+    if (!board) return;
+    if (fromDone) {
+      board.doneTasks = board.doneTasks.filter(t => t.id !== taskId);
     } else {
-      tasks.forEach((task, i) => {
-        const li = document.createElement('li');
-        const priority = task.priority || null;
-        if (priority) li.classList.add('pri-' + priority);
+      board.tasks = board.tasks.filter(t => t.id !== taskId);
+    }
+    saveToStorage();
+    renderAll();
+  }
 
-        const isFirstInGroup = i === 0 || (tasks[i - 1].priority || null) !== priority;
-        const isLastInGroup = i === tasks.length - 1 || (tasks[i + 1].priority || null) !== priority;
+  // ---- Renderização: coluna de caixinhas (à esquerda) ----
+  function renderAll() {
+    renderBoardsColumn();
+    renderDiary();
+  }
 
-        if (task.editing) {
-          li.innerHTML = `
-            <span class="index">${i + 1}</span>
-            <input type="text" class="edit-input" value="${task.text.replace(/"/g, '&quot;')}">
-            <button class="edit-btn" title="Salvar">&#10003;</button>
-          `;
-          const editInput = li.querySelector('.edit-input');
-          li.querySelector('.edit-btn').addEventListener('click', () => saveEdit(task.id, editInput.value));
-          editInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') saveEdit(task.id, editInput.value);
-            if (e.key === 'Escape') { task.editing = false; render(); }
-          });
-          pendingList.appendChild(li);
-          editInput.focus();
-          editInput.select();
-          return;
-        }
+  function renderBoardsColumn() {
+    boardsColumn.innerHTML = '';
 
+    boards.forEach(board => {
+      boardsColumn.appendChild(buildBoardBox(board));
+    });
+
+    const newCard = document.createElement('div');
+    newCard.className = 'new-board-card';
+    newCard.innerHTML = '<span>+</span><span>Criar Lista de Tarefas</span>';
+    newCard.addEventListener('click', openNewBoardModal);
+    boardsColumn.appendChild(newCard);
+  }
+
+  function buildBoardBox(board) {
+    const isExpanded = expandedBoardId === board.id;
+
+    const box = document.createElement('div');
+    box.className = 'board-box';
+
+    const header = document.createElement('div');
+    header.className = 'board-box-header';
+    header.innerHTML = `
+      <button class="rename-btn" title="Renomear lista">&#9998;</button>
+      <h3 class="board-name-text"></h3>
+      <span class="board-mini-stats">${board.tasks.length}p · ${board.doneTasks.length}c</span>
+      <button class="board-delete-btn" title="Excluir lista">&times;</button>
+    `;
+    header.querySelector('.board-name-text').textContent = board.name;
+
+    header.querySelector('.rename-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      startRenameBoard(board, header);
+    });
+
+    header.querySelector('.board-delete-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      confirmDeleteBoard(board.id);
+    });
+
+    header.addEventListener('click', () => {
+      expandedBoardId = isExpanded ? null : board.id;
+      renderBoardsColumn();
+    });
+
+    box.appendChild(header);
+
+    if (isExpanded) {
+      const body = document.createElement('div');
+      body.className = 'board-box-body';
+
+      const form = document.createElement('form');
+      form.className = 'mini-task-form';
+      form.innerHTML = `
+        <input type="text" class="mini-task-input" placeholder="O que você precisa fazer?" autocomplete="off">
+        <button type="submit" class="add-btn">Adicionar</button>
+      `;
+      const miniInput = form.querySelector('.mini-task-input');
+      form.addEventListener('click', (e) => e.stopPropagation());
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        addTask(board.id, miniInput.value);
+      });
+      body.appendChild(form);
+
+      const list = document.createElement('ul');
+      list.className = 'mini-pending-list';
+      renderPendingTasks(board, list);
+      body.appendChild(list);
+
+      box.appendChild(body);
+    }
+
+    return box;
+  }
+
+  function startRenameBoard(board, header) {
+    const nameEl = header.querySelector('.board-name-text');
+    const inputEl = document.createElement('input');
+    inputEl.type = 'text';
+    inputEl.className = 'board-rename-input';
+    inputEl.value = board.name;
+    inputEl.addEventListener('click', (e) => e.stopPropagation());
+    nameEl.replaceWith(inputEl);
+    inputEl.focus();
+    inputEl.select();
+
+    function commit() {
+      const newName = inputEl.value.trim();
+      if (newName) {
+        board.name = newName;
+        saveToStorage();
+      }
+      renderBoardsColumn();
+    }
+
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') commit();
+      if (e.key === 'Escape') renderBoardsColumn();
+    });
+    inputEl.addEventListener('blur', commit);
+  }
+
+  function renderPendingTasks(board, list) {
+    list.innerHTML = '';
+
+    if (board.tasks.length === 0) {
+      list.innerHTML = '<li style="all:unset"><div class="empty-msg" style="width:100%">Nenhuma tarefa pendente.</div></li>';
+      return;
+    }
+
+    board.tasks.forEach((task, i) => {
+      const li = document.createElement('li');
+      const priority = task.priority || null;
+      if (priority) li.classList.add('pri-' + priority);
+
+      const isFirstInGroup = i === 0 || (board.tasks[i - 1].priority || null) !== priority;
+      const isLastInGroup = i === board.tasks.length - 1 || (board.tasks[i + 1].priority || null) !== priority;
+
+      if (task.editing) {
         li.innerHTML = `
           <span class="index">${i + 1}</span>
-          <div class="move-group">
-            <button class="move-btn move-up" title="Mover para cima" ${isFirstInGroup ? 'disabled' : ''}>&#9650;</button>
-            <button class="move-btn move-down" title="Mover para baixo" ${isLastInGroup ? 'disabled' : ''}>&#9660;</button>
-          </div>
-          <button class="check-btn" title="Marcar como concluída"></button>
+          <input type="text" class="edit-input" value="${task.text.replace(/"/g, '&quot;')}">
+          <button class="edit-btn" title="Salvar">&#10003;</button>
+        `;
+        const editInput = li.querySelector('.edit-input');
+        editInput.addEventListener('click', (e) => e.stopPropagation());
+        li.querySelector('.edit-btn').addEventListener('click', (e) => { e.stopPropagation(); saveEdit(board.id, task.id, editInput.value); });
+        editInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') saveEdit(board.id, task.id, editInput.value);
+          if (e.key === 'Escape') { task.editing = false; renderAll(); }
+        });
+        list.appendChild(li);
+        editInput.focus();
+        editInput.select();
+        return;
+      }
+
+      li.innerHTML = `
+        <span class="index">${i + 1}</span>
+        <div class="move-group">
+          <button class="move-btn move-up" title="Mover para cima" ${isFirstInGroup ? 'disabled' : ''}>&#9650;</button>
+          <button class="move-btn move-down" title="Mover para baixo" ${isLastInGroup ? 'disabled' : ''}>&#9660;</button>
+        </div>
+        <button class="check-btn" title="Marcar como concluída"></button>
+        <span class="task-text"></span>
+        <select class="priority-select" title="Classificar prioridade">
+          <option value="">Sem cor</option>
+          <option value="red">Urgente</option>
+          <option value="yellow">Média</option>
+          <option value="blue">Baixa</option>
+          <option value="green">Adiável</option>
+        </select>
+        <button class="edit-btn" title="Editar">&#9998;</button>
+        <button class="delete-btn" title="Excluir">&times;</button>
+      `;
+      li.addEventListener('click', (e) => e.stopPropagation());
+      li.querySelector('.task-text').textContent = task.text;
+
+      const select = li.querySelector('.priority-select');
+      select.value = priority || '';
+      select.style.background = PRIORITY_COLORS[priority || null];
+      select.addEventListener('change', (e) => setPriority(board.id, task.id, e.target.value));
+
+      li.querySelector('.move-up').addEventListener('click', () => moveTask(board.id, task.id, 'up'));
+      li.querySelector('.move-down').addEventListener('click', () => moveTask(board.id, task.id, 'down'));
+      li.querySelector('.check-btn').addEventListener('click', () => askComplete(board.id, task.id));
+      li.querySelector('.edit-btn').addEventListener('click', () => startEdit(board.id, task.id));
+      li.querySelector('.delete-btn').addEventListener('click', () => deleteTask(board.id, task.id, false));
+      list.appendChild(li);
+    });
+  }
+
+  // ---- Diário único de horários (agrega todas as listas) ----
+  function getAllDoneTasks() {
+    let all = [];
+    boards.forEach(board => {
+      board.doneTasks.forEach(t => all.push({ ...t, boardId: board.id, boardName: board.name }));
+    });
+    return all;
+  }
+
+  function formatHourLabel(h) {
+    return `${h}h`;
+  }
+
+  function formatTime(iso) {
+    const d = new Date(iso);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
+  }
+
+  function renderDiary() {
+    const all = getAllDoneTasks();
+    diaryCount.textContent = all.length;
+    renderHourTimeline(all);
+    renderDailyReport(all);
+  }
+
+  function renderHourTimeline(all) {
+    hourTimeline.innerHTML = '';
+
+    const semHorario = all.filter(t => !t.completedAt);
+    if (semHorario.length > 0) {
+      hourTimeline.appendChild(buildHourRow('Sem horário', semHorario));
+    }
+
+    for (let h = 0; h < 24; h++) {
+      const tasksAtHour = all.filter(t => t.completedAt && new Date(t.completedAt).getHours() === h);
+      hourTimeline.appendChild(buildHourRow(formatHourLabel(h), tasksAtHour));
+    }
+  }
+
+  function buildHourRow(label, tasksAtHour) {
+    const row = document.createElement('div');
+    row.className = 'hour-row' + (tasksAtHour.length > 0 ? ' has-tasks' : '');
+
+    const labelEl = document.createElement('span');
+    labelEl.className = 'hour-label';
+    labelEl.textContent = label;
+    row.appendChild(labelEl);
+
+    const tasksWrap = document.createElement('div');
+    tasksWrap.className = 'hour-tasks';
+
+    if (tasksAtHour.length === 0) {
+      const empty = document.createElement('span');
+      empty.className = 'hour-empty';
+      empty.textContent = '—';
+      tasksWrap.appendChild(empty);
+    } else {
+      tasksAtHour.forEach(task => {
+        const item = document.createElement('div');
+        item.className = 'hour-task';
+        item.innerHTML = `
+          ${task.completedAt ? `<span class="hour-time">${formatTime(task.completedAt)}</span>` : ''}
           <span class="task-text"></span>
-          <select class="priority-select" title="Classificar prioridade">
-            <option value="">Sem cor</option>
-            <option value="red">Urgente</option>
-            <option value="yellow">Média</option>
-            <option value="blue">Baixa</option>
-            <option value="green">Adiável</option>
-          </select>
-          <button class="edit-btn" title="Editar">&#9998;</button>
+          <span class="hour-task-board"></span>
           <button class="delete-btn" title="Excluir">&times;</button>
         `;
-        li.querySelector('.task-text').textContent = task.text;
-
-        const select = li.querySelector('.priority-select');
-        select.value = priority || '';
-        select.style.background = PRIORITY_COLORS[priority || null];
-        select.addEventListener('change', (e) => setPriority(task.id, e.target.value));
-
-        li.querySelector('.move-up').addEventListener('click', () => moveTask(task.id, 'up'));
-        li.querySelector('.move-down').addEventListener('click', () => moveTask(task.id, 'down'));
-        li.querySelector('.check-btn').addEventListener('click', () => askComplete(task.id));
-        li.querySelector('.edit-btn').addEventListener('click', () => startEdit(task.id));
-        li.querySelector('.delete-btn').addEventListener('click', () => deleteTask(task.id, false));
-        pendingList.appendChild(li);
+        item.querySelector('.task-text').textContent = task.text;
+        item.querySelector('.hour-task-board').textContent = task.boardName;
+        item.querySelector('.delete-btn').addEventListener('click', () => deleteTask(task.boardId, task.id, true));
+        tasksWrap.appendChild(item);
       });
     }
 
-    doneList.innerHTML = '';
-    if (doneTasks.length === 0) {
-      doneList.innerHTML = '<li style="all:unset"><div class="empty-msg" style="width:100%">Nada concluído ainda.</div></li>';
-    } else {
-      doneTasks.forEach((task, i) => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-          <span class="index">${i + 1}</span>
-          <span class="task-text"></span>
-          <button class="delete-btn" title="Excluir">&times;</button>
-        `;
-        li.querySelector('.task-text').textContent = task.text;
-        li.querySelector('.delete-btn').addEventListener('click', () => deleteTask(task.id, true));
-        doneList.appendChild(li);
-      });
+    row.appendChild(tasksWrap);
+    return row;
+  }
+
+  function renderDailyReport(all) {
+    reportContent.innerHTML = '';
+
+    if (all.length === 0) {
+      reportContent.innerHTML = '<div class="empty-msg">Nenhuma tarefa concluída ainda.</div>';
+      return;
     }
+
+    const total = document.createElement('p');
+    total.className = 'report-total';
+    total.innerHTML = `Total de <strong>${all.length}</strong> tarefa${all.length === 1 ? '' : 's'} concluída${all.length === 1 ? '' : 's'} em todas as listas.`;
+    reportContent.appendChild(total);
+
+    const semHorario = all.filter(t => !t.completedAt);
+    if (semHorario.length > 0) {
+      reportContent.appendChild(buildReportBlock('Sem horário', semHorario));
+    }
+
+    for (let h = 0; h < 24; h++) {
+      const tasksAtHour = all.filter(t => t.completedAt && new Date(t.completedAt).getHours() === h);
+      if (tasksAtHour.length > 0) {
+        reportContent.appendChild(buildReportBlock(formatHourLabel(h), tasksAtHour));
+      }
+    }
+  }
+
+  function buildReportBlock(label, tasksAtHour) {
+    const block = document.createElement('div');
+    block.className = 'report-hour-block';
+    const names = tasksAtHour
+      .map(t => t.completedAt ? `${t.text} (${formatTime(t.completedAt)} — ${t.boardName})` : `${t.text} (${t.boardName})`)
+      .join(', ');
+    block.innerHTML = `<span class="report-hour-label">${label}</span><span class="report-tasks"></span>`;
+    block.querySelector('.report-tasks').textContent = names;
+    return block;
   }
 
   function setDateSubtitle() {
@@ -624,13 +1113,13 @@
     const hoje = new Date();
     const dia = hoje.getDate();
     const mes = meses[hoje.getMonth()];
-    const subtitleEl = document.getElementById('date-subtitle');
-    subtitleEl.textContent = `Lista de Tarefas do dia ${dia} de ${mes}`;
+    document.getElementById('date-subtitle').textContent = `dia ${dia} de ${mes}`;
   }
 
+  // ---- Inicialização ----
   setDateSubtitle();
   loadFromStorage();
-  render();
+  renderAll();
 </script>
 
 </body>
