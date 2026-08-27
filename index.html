@@ -1161,11 +1161,14 @@ function saveToStorage() {
   }
 
   // ---- Inicialização ----
-  (function init() {
+ // ---- Inicialização ----
+  function init() {
     setDateSubtitle();
     loadFromStorage();
     renderAll();
-  })();
+  }
+
+  init();
 </script>
 
 </body>
