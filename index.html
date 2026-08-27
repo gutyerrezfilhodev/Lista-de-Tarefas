@@ -626,35 +626,51 @@
 
   const STORAGE_KEY = 'lista-de-tarefas-gutyerrez';
 
-function saveToStorage() {
+  function saveToStorage() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ boards, nextBoardId }));
     } catch (err) {
       console.error('Não foi possível salvar os dados:', err);
     }
   }
-  
 
- function loadFromStorage() {
+  function loadFromStorage() {
     try {
       const rawData = localStorage.getItem(STORAGE_KEY);
-      if (!rawData) return;
+      if (!rawData) {
+        // Fallback: Se não houver nada salvo, cria uma lista padrão inicial
+        boards = [{
+          id: 1,
+          name: 'Principal',
+          tasks: [],
+          doneTasks: [],
+          nextId: 1
+        }];
+        nextBoardId = 2;
+        expandedBoardId = 1;
+        return;
+      }
+      
       const data = JSON.parse(rawData);
 
-      if (Array.isArray(data.boards)) {
+      if (Array.isArray(data.boards) && data.boards.length > 0) {
         boards = data.boards;
         nextBoardId = typeof data.nextBoardId === 'number'
           ? data.nextBoardId
           : (Math.max(0, ...boards.map(b => b.id)) + 1);
-      } else if (Array.isArray(data.tasks) || Array.isArray(data.doneTasks)) {
+      } else {
         boards = [{
           id: 1,
-          name: 'Minhas tarefas',
+          name: 'Principal',
           tasks: Array.isArray(data.tasks) ? data.tasks : [],
           doneTasks: Array.isArray(data.doneTasks) ? data.doneTasks : [],
           nextId: typeof data.nextId === 'number' ? data.nextId : 1
         }];
         nextBoardId = 2;
+      }
+
+      if (expandedBoardId === null && boards.length > 0) {
+        expandedBoardId = boards[0].id;
       }
 
       boards.forEach(board => {
@@ -665,8 +681,12 @@ function saveToStorage() {
       });
     } catch (err) {
       console.error('Não foi possível carregar as listas salvas:', err);
+      boards = [{ id: 1, name: 'Principal', tasks: [], doneTasks: [], nextId: 1 }];
+      nextBoardId = 2;
+      expandedBoardId = 1;
     }
   }
+
   const boardsColumn = document.getElementById('boards-column');
   const hourTimeline = document.getElementById('hour-timeline');
   const diaryCount = document.getElementById('diary-count');
@@ -744,7 +764,9 @@ function saveToStorage() {
     if (!board) return;
     showConfirm(`Excluir a lista "${board.name}"? Essa ação não pode ser desfeita.`, () => {
       boards = boards.filter(b => b.id !== id);
-      if (expandedBoardId === id) expandedBoardId = null;
+      if (expandedBoardId === id) {
+        expandedBoardId = boards.length > 0 ? boards[0].id : null;
+      }
       saveToStorage();
       renderAll();
     });
@@ -1160,7 +1182,6 @@ function saveToStorage() {
   }
 
   // ---- Inicialização ----
- // ---- Inicialização ----
   function init() {
     setDateSubtitle();
     loadFromStorage();
