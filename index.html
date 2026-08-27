@@ -221,14 +221,38 @@
 
   li {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
     background: var(--bg);
     border: 1px solid var(--line);
     border-left: 4px solid var(--pri-none);
     border-radius: 10px;
     padding: 10px 12px;
     animation: appear 0.18s ease;
+  }
+
+  .task-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .task-top-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .task-top-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
   }
 
   li.pri-red { border-left-color: var(--pri-red); }
@@ -268,9 +292,12 @@
   .check-btn:hover { background: rgba(110, 231, 183, 0.15); }
 
   .task-text {
-    flex: 1;
-    font-size: 0.88rem;
+    display: block;
+    width: 100%;
+    font-size: 0.9rem;
+    line-height: 1.4;
     word-break: break-word;
+    padding-top: 2px;
   }
 
   .delete-btn {
@@ -301,11 +328,12 @@
   .edit-btn:hover { color: var(--accent); }
 
   .edit-input {
-    flex: 1;
+    display: block;
+    width: 100%;
     background: var(--panel);
     border: 1px solid var(--accent-dim);
     color: var(--ink);
-    padding: 6px 8px;
+    padding: 8px 10px;
     border-radius: 6px;
     font-size: 0.9rem;
     outline: none;
@@ -598,15 +626,19 @@
 
   const STORAGE_KEY = 'lista-de-tarefas-gutyerrez';
 
-  function saveToStorage() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ boards, nextBoardId }));
+  async function saveToStorage() {
+    try {
+      await window.storage.set(STORAGE_KEY, JSON.stringify({ boards, nextBoardId }), false);
+    } catch (err) {
+      console.error('Não foi possível salvar os dados:', err);
+    }
   }
 
-  function loadFromStorage() {
+  async function loadFromStorage() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const data = JSON.parse(raw);
+      const result = await window.storage.get(STORAGE_KEY, false);
+      if (!result || !result.value) return;
+      const data = JSON.parse(result.value);
 
       if (Array.isArray(data.boards)) {
         boards = data.boards;
@@ -940,9 +972,15 @@
 
       if (task.editing) {
         li.innerHTML = `
-          <span class="index">${i + 1}</span>
+          <div class="task-top-row">
+            <div class="task-top-left">
+              <span class="index">${i + 1}</span>
+            </div>
+            <div class="task-top-right">
+              <button class="edit-btn" title="Salvar">&#10003;</button>
+            </div>
+          </div>
           <input type="text" class="edit-input" value="${task.text.replace(/"/g, '&quot;')}">
-          <button class="edit-btn" title="Salvar">&#10003;</button>
         `;
         const editInput = li.querySelector('.edit-input');
         editInput.addEventListener('click', (e) => e.stopPropagation());
@@ -958,22 +996,28 @@
       }
 
       li.innerHTML = `
-        <span class="index">${i + 1}</span>
-        <div class="move-group">
-          <button class="move-btn move-up" title="Mover para cima" ${isFirstInGroup ? 'disabled' : ''}>&#9650;</button>
-          <button class="move-btn move-down" title="Mover para baixo" ${isLastInGroup ? 'disabled' : ''}>&#9660;</button>
+        <div class="task-top-row">
+          <div class="task-top-left">
+            <span class="index">${i + 1}</span>
+            <div class="move-group">
+              <button class="move-btn move-up" title="Mover para cima" ${isFirstInGroup ? 'disabled' : ''}>&#9650;</button>
+              <button class="move-btn move-down" title="Mover para baixo" ${isLastInGroup ? 'disabled' : ''}>&#9660;</button>
+            </div>
+            <button class="check-btn" title="Marcar como concluída"></button>
+          </div>
+          <div class="task-top-right">
+            <select class="priority-select" title="Classificar prioridade">
+              <option value="">Sem cor</option>
+              <option value="red">Urgente</option>
+              <option value="yellow">Média</option>
+              <option value="blue">Baixa</option>
+              <option value="green">Adiável</option>
+            </select>
+            <button class="edit-btn" title="Editar">&#9998;</button>
+            <button class="delete-btn" title="Excluir">&times;</button>
+          </div>
         </div>
-        <button class="check-btn" title="Marcar como concluída"></button>
         <span class="task-text"></span>
-        <select class="priority-select" title="Classificar prioridade">
-          <option value="">Sem cor</option>
-          <option value="red">Urgente</option>
-          <option value="yellow">Média</option>
-          <option value="blue">Baixa</option>
-          <option value="green">Adiável</option>
-        </select>
-        <button class="edit-btn" title="Editar">&#9998;</button>
-        <button class="delete-btn" title="Excluir">&times;</button>
       `;
       li.addEventListener('click', (e) => e.stopPropagation());
       li.querySelector('.task-text').textContent = task.text;
@@ -1117,9 +1161,11 @@
   }
 
   // ---- Inicialização ----
-  setDateSubtitle();
-  loadFromStorage();
-  renderAll();
+  (async function init() {
+    setDateSubtitle();
+    await loadFromStorage();
+    renderAll();
+  })();
 </script>
 
 </body>
