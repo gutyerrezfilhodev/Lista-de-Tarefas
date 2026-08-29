@@ -51,7 +51,7 @@
     margin-bottom: 28px;
   }
 
-  /* ---- Layout principal: caixinhas à esquerda, diário à direita ---- */
+  /* ---- Layout principal ---- */
   .main-grid {
     display: grid;
     grid-template-columns: 360px 1fr;
@@ -77,6 +77,13 @@
     border: 1px solid var(--line);
     border-radius: 12px;
     overflow: hidden;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+
+  /* Indicador visual de quando uma lista é alvo de soltar */
+  .board-box.drag-over {
+    border-color: var(--accent);
+    background-color: rgba(110, 231, 183, 0.03);
   }
 
   .board-box-header {
@@ -159,7 +166,7 @@
     background: rgba(110, 231, 183, 0.06);
   }
 
-  /* ---- Formulário / inputs ---- */
+  /* ---- Inputs ---- */
   input[type="text"] {
     flex: 1;
     background: var(--bg);
@@ -217,6 +224,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    min-height: 20px;
   }
 
   li {
@@ -230,6 +238,21 @@
     border-radius: 10px;
     padding: 10px 12px;
     animation: appear 0.18s ease;
+    cursor: grab;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+
+  li:active {
+    cursor: grabbing;
+  }
+
+  li.dragging {
+    opacity: 0.4;
+    transform: scale(0.98);
+  }
+
+  li.drag-over-item {
+    border-top: 2px solid var(--accent);
   }
 
   .task-top-row {
@@ -253,6 +276,18 @@
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
+  }
+
+  .drag-handle {
+    cursor: grab;
+    color: var(--muted);
+    font-size: 0.9rem;
+    user-select: none;
+    padding: 0 2px;
+  }
+
+  .drag-handle:active {
+    cursor: grabbing;
   }
 
   li.pri-red { border-left-color: var(--pri-red); }
@@ -352,6 +387,24 @@
     max-width: 82px;
   }
 
+  .move-board-select {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 3px 5px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    max-width: 90px;
+  }
+
+  .move-board-select:hover {
+    border-color: var(--accent-dim);
+    color: var(--ink);
+  }
+
   .move-group {
     display: flex;
     flex-direction: column;
@@ -386,7 +439,7 @@
     border-radius: 10px;
   }
 
-  /* ---- Coluna do diário (única, fora das caixinhas) ---- */
+  /* ---- Diário ---- */
   .diary-column {
     display: flex;
     flex-direction: column;
@@ -617,9 +670,13 @@
 
 <script>
   // ---- Estado global ----
-  let boards = [];          // [{ id, name, tasks:[], doneTasks:[], nextId }]
+  let boards = [];
   let nextBoardId = 1;
   let expandedBoardId = null;
+
+  // Controle de estado para a API de Drag and Drop
+  let draggedTaskId = null;
+  let draggedSourceBoardId = null;
 
   const PRIORITY_ORDER = ['red', 'yellow', 'blue', 'green', null];
   const PRIORITY_COLORS = { red: '#e2685f', yellow: '#e0b93f', blue: '#4f9fe8', green: '#5fd88a', null: '#4a4e58' };
@@ -638,7 +695,6 @@
     try {
       const rawData = localStorage.getItem(STORAGE_KEY);
       if (!rawData) {
-        // Fallback: Se não houver nada salvo, cria uma lista padrão inicial
         boards = [{
           id: 1,
           name: 'Principal',
@@ -696,7 +752,7 @@
     return boards.find(b => b.id === id);
   }
 
-  // ---- Modal genérico de confirmação (Sim/Não) ----
+  // ---- Modais ----
   const confirmModal = document.getElementById('confirm-modal');
   const confirmMessage = document.getElementById('confirm-message');
   const confirmYes = document.getElementById('confirm-yes');
@@ -724,7 +780,6 @@
     if (e.target === confirmModal) closeConfirmModal();
   });
 
-  // ---- Modal de criação de nova lista ----
   const newBoardModal = document.getElementById('new-board-modal');
   const newBoardInput = document.getElementById('new-board-input');
 
@@ -772,7 +827,7 @@
     });
   }
 
-  // ---- Tarefas dentro de uma lista específica ----
+  // ---- Operações com Tarefas ----
   function addTask(boardId, text) {
     const board = getBoard(boardId);
     if (!board || !text.trim()) return;
@@ -807,6 +862,30 @@
     if (!task) return;
     task.priority = value || null;
     sortBoardTasks(board);
+    saveToStorage();
+    renderAll();
+  }
+
+  function moveTaskToBoard(sourceBoardId, targetBoardId, taskId, targetIndex = null) {
+    const sourceBoard = getBoard(sourceBoardId);
+    const targetBoard = getBoard(targetBoardId);
+    if (!sourceBoard || !targetBoard) return;
+
+    const taskIndex = sourceBoard.tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
+
+    const [task] = sourceBoard.tasks.splice(taskIndex, 1);
+    
+    if (sourceBoardId !== targetBoardId) {
+      task.id = targetBoard.nextId++;
+    }
+
+    if (targetIndex !== null && targetIndex >= 0) {
+      targetBoard.tasks.splice(targetIndex, 0, task);
+    } else {
+      targetBoard.tasks.push(task);
+    }
+
     saveToStorage();
     renderAll();
   }
@@ -866,7 +945,7 @@
     renderAll();
   }
 
-  // ---- Renderização: coluna de caixinhas (à esquerda) ----
+  // ---- Renderização ----
   function renderAll() {
     renderBoardsColumn();
     renderDiary();
@@ -891,6 +970,33 @@
 
     const box = document.createElement('div');
     box.className = 'board-box';
+    box.dataset.boardId = board.id;
+
+    // EVENTOS DE DRAG & DROP NA CAIXA DA LISTA (Drop Target)
+    box.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (draggedTaskId !== null) {
+        box.classList.add('drag-over');
+      }
+    });
+
+    box.addEventListener('dragleave', (e) => {
+      if (!box.contains(e.relatedTarget)) {
+        box.classList.remove('drag-over');
+      }
+    });
+
+    box.addEventListener('drop', (e) => {
+      e.preventDefault();
+      box.classList.remove('drag-over');
+      
+      // Se soltar na área geral do box e não em um item específico, adiciona no final da lista
+      if (draggedTaskId !== null && draggedSourceBoardId !== null) {
+        if (!e.target.closest('li')) {
+          moveTaskToBoard(draggedSourceBoardId, board.id, draggedTaskId);
+        }
+      }
+    });
 
     const header = document.createElement('div');
     header.className = 'board-box-header';
@@ -979,19 +1085,69 @@
     list.innerHTML = '';
 
     if (board.tasks.length === 0) {
-      list.innerHTML = '<li style="all:unset"><div class="empty-msg" style="width:100%">Nenhuma tarefa pendente.</div></li>';
+      list.innerHTML = '<li style="all:unset; cursor:default;"><div class="empty-msg" style="width:100%">Nenhuma tarefa pendente.</div></li>';
       return;
     }
 
+    const boardOptions = boards
+      .filter(b => b.id !== board.id)
+      .map(b => `<option value="${b.id}">${b.name.replace(/"/g, '&quot;')}</option>`)
+      .join('');
+    const hasOtherBoards = boardOptions.length > 0;
+
     board.tasks.forEach((task, i) => {
       const li = document.createElement('li');
+      li.draggable = true;
+      li.dataset.taskId = task.id;
+      li.dataset.boardId = board.id;
+
       const priority = task.priority || null;
       if (priority) li.classList.add('pri-' + priority);
 
       const isFirstInGroup = i === 0 || (board.tasks[i - 1].priority || null) !== priority;
       const isLastInGroup = i === board.tasks.length - 1 || (board.tasks[i + 1].priority || null) !== priority;
 
+      // EVENTOS DRAG AND DROP DO ITEM DA TAREFA
+      li.addEventListener('dragstart', (e) => {
+        draggedTaskId = task.id;
+        draggedSourceBoardId = board.id;
+        li.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', JSON.stringify({ boardId: board.id, taskId: task.id }));
+      });
+
+      li.addEventListener('dragend', () => {
+        draggedTaskId = null;
+        draggedSourceBoardId = null;
+        li.classList.remove('dragging');
+        document.querySelectorAll('.drag-over-item').forEach(el => el.classList.remove('drag-over-item'));
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+      });
+
+      li.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (draggedTaskId !== null && draggedTaskId !== task.id) {
+          li.classList.add('drag-over-item');
+        }
+      });
+
+      li.addEventListener('dragleave', () => {
+        li.classList.remove('drag-over-item');
+      });
+
+      li.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        li.classList.remove('drag-over-item');
+
+        if (draggedTaskId !== null && draggedSourceBoardId !== null) {
+          moveTaskToBoard(draggedSourceBoardId, board.id, draggedTaskId, i);
+        }
+      });
+
       if (task.editing) {
+        li.draggable = false;
         li.innerHTML = `
           <div class="task-top-row">
             <div class="task-top-left">
@@ -1019,6 +1175,7 @@
       li.innerHTML = `
         <div class="task-top-row">
           <div class="task-top-left">
+            <span class="drag-handle" title="Arrastar tarefa">&#9776;</span>
             <span class="index">${i + 1}</span>
             <div class="move-group">
               <button class="move-btn move-up" title="Mover para cima" ${isFirstInGroup ? 'disabled' : ''}>&#9650;</button>
@@ -1027,6 +1184,12 @@
             <button class="check-btn" title="Marcar como concluída"></button>
           </div>
           <div class="task-top-right">
+            ${hasOtherBoards ? `
+              <select class="move-board-select" title="Mover para outra lista">
+                <option value="" disabled selected>Mover p/...</option>
+                ${boardOptions}
+              </select>
+            ` : ''}
             <select class="priority-select" title="Classificar prioridade">
               <option value="">Sem cor</option>
               <option value="red">Urgente</option>
@@ -1048,6 +1211,16 @@
       select.style.background = PRIORITY_COLORS[priority || null];
       select.addEventListener('change', (e) => setPriority(board.id, task.id, e.target.value));
 
+      const moveSelect = li.querySelector('.move-board-select');
+      if (moveSelect) {
+        moveSelect.addEventListener('change', (e) => {
+          const targetBoardId = parseInt(e.target.value, 10);
+          if (targetBoardId) {
+            moveTaskToBoard(board.id, targetBoardId, task.id);
+          }
+        });
+      }
+
       li.querySelector('.move-up').addEventListener('click', () => moveTask(board.id, task.id, 'up'));
       li.querySelector('.move-down').addEventListener('click', () => moveTask(board.id, task.id, 'down'));
       li.querySelector('.check-btn').addEventListener('click', () => askComplete(board.id, task.id));
@@ -1057,7 +1230,7 @@
     });
   }
 
-  // ---- Diário único de horários (agrega todas as listas) ----
+  // ---- Diário ----
   function getAllDoneTasks() {
     let all = [];
     boards.forEach(board => {
