@@ -588,6 +588,121 @@
     color: var(--ink);
   }
 
+  /* ---- Tarefas Fixas ---- */
+  .fixed-column {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .fixed-panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .fixed-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .fixed-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    animation: appear 0.18s ease;
+  }
+
+  .fixed-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .fixed-item .task-text {
+    flex: 1;
+  }
+
+  .fixed-actions-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .fixed-selection-info {
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  .fixed-add-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .apply-select {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-size: 0.85rem;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .apply-select:hover { border-color: var(--accent-dim); }
+
+  button.apply-btn {
+    background: var(--accent);
+    color: #12241c;
+    border: none;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    transition: filter 0.15s ease;
+  }
+
+  button.apply-btn:hover:not(:disabled) { filter: brightness(1.08); }
+
+  button.apply-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  button.select-all-btn {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+
+  button.select-all-btn:hover {
+    color: var(--ink);
+    border-color: var(--accent-dim);
+  }
+
   /* ---- Modais ---- */
   .modal-overlay {
     position: fixed;
@@ -664,11 +779,37 @@
 
   <div class="tabs-nav">
     <button class="tab-btn active" data-tab="tasks">Tarefas</button>
+    <button class="tab-btn" data-tab="fixed">Tarefas Fixas</button>
     <button class="tab-btn" data-tab="diary">Diário</button>
   </div>
 
   <div class="tab-panel active" id="tab-tasks">
     <div class="boards-column" id="boards-column"></div>
+  </div>
+
+  <div class="tab-panel" id="tab-fixed">
+    <div class="fixed-column">
+      <div class="fixed-panel">
+        <h2>Tarefas fixas <span class="count" id="fixed-count">0</span></h2>
+        <div class="mini-task-form">
+          <input type="text" id="fixed-task-input" placeholder="Nome da tarefa fixa..." autocomplete="off">
+          <button type="button" class="add-btn" id="fixed-task-add">Adicionar</button>
+        </div>
+
+        <div class="fixed-actions-bar">
+          <div>
+            <button type="button" class="select-all-btn" id="fixed-select-all">Selecionar todas</button>
+            <span class="fixed-selection-info" id="fixed-selection-info"></span>
+          </div>
+          <div class="fixed-add-controls">
+            <select class="apply-select" id="fixed-apply-select"></select>
+            <button type="button" class="apply-btn" id="fixed-apply-btn" disabled>Adicionar à lista</button>
+          </div>
+        </div>
+
+        <ul class="fixed-list" id="fixed-list"></ul>
+      </div>
+    </div>
   </div>
 
   <div class="tab-panel" id="tab-diary">
@@ -713,6 +854,11 @@
   let nextBoardId = 1;
   let expandedBoardId = null;
 
+  // ---- Tarefas fixas ----
+  let fixedTasks = [];
+  let nextFixedId = 1;
+  let selectedFixedIds = new Set();
+
   // Controle de estado para a API de Drag and Drop
   let draggedTaskId = null;
   let draggedSourceBoardId = null;
@@ -725,7 +871,7 @@
 
   function saveToStorage() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ boards, nextBoardId }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ boards, nextBoardId, fixedTasks, nextFixedId }));
     } catch (err) {
       console.error('Não foi possível salvar os dados:', err);
     }
@@ -744,6 +890,8 @@
         }];
         nextBoardId = 2;
         expandedBoardId = 1;
+        fixedTasks = [];
+        nextFixedId = 1;
         return;
       }
       
@@ -775,11 +923,18 @@
           if (t.priority === undefined) t.priority = null;
         });
       });
+
+      fixedTasks = Array.isArray(data.fixedTasks) ? data.fixedTasks : [];
+      nextFixedId = typeof data.nextFixedId === 'number'
+        ? data.nextFixedId
+        : (fixedTasks.length > 0 ? Math.max(0, ...fixedTasks.map(t => t.id)) + 1 : 1);
     } catch (err) {
       console.error('Não foi possível carregar as listas salvas:', err);
       boards = [{ id: 1, name: 'Principal', tasks: [], doneTasks: [], nextId: 1 }];
       nextBoardId = 2;
       expandedBoardId = 1;
+      fixedTasks = [];
+      nextFixedId = 1;
     }
   }
 
@@ -787,6 +942,15 @@
   const hourTimeline = document.getElementById('hour-timeline');
   const diaryCount = document.getElementById('diary-count');
   const reportContent = document.getElementById('report-content');
+
+  const fixedListEl = document.getElementById('fixed-list');
+  const fixedCountEl = document.getElementById('fixed-count');
+  const fixedTaskInput = document.getElementById('fixed-task-input');
+  const fixedTaskAddBtn = document.getElementById('fixed-task-add');
+  const fixedSelectAllBtn = document.getElementById('fixed-select-all');
+  const fixedSelectionInfo = document.getElementById('fixed-selection-info');
+  const fixedApplySelect = document.getElementById('fixed-apply-select');
+  const fixedApplyBtn = document.getElementById('fixed-apply-btn');
 
   function getBoard(id) {
     return boards.find(b => b.id === id);
@@ -1018,9 +1182,62 @@
     renderAll();
   }
 
+  // ---- Operações com Tarefas Fixas ----
+  function addFixedTask(text) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    fixedTasks.push({ id: nextFixedId++, text: trimmed });
+    saveToStorage();
+    renderFixed();
+  }
+
+  function deleteFixedTask(id) {
+    fixedTasks = fixedTasks.filter(t => t.id !== id);
+    selectedFixedIds.delete(id);
+    saveToStorage();
+    renderFixed();
+  }
+
+  function toggleFixedSelection(id, checked) {
+    if (checked) {
+      selectedFixedIds.add(id);
+    } else {
+      selectedFixedIds.delete(id);
+    }
+    updateFixedActionsBar();
+  }
+
+  function toggleSelectAllFixed() {
+    const allSelected = fixedTasks.length > 0 && fixedTasks.every(t => selectedFixedIds.has(t.id));
+    if (allSelected) {
+      selectedFixedIds.clear();
+    } else {
+      fixedTasks.forEach(t => selectedFixedIds.add(t.id));
+    }
+    renderFixed();
+  }
+
+  function applySelectedFixedTasks() {
+    const targetBoardId = parseInt(fixedApplySelect.value, 10);
+    if (!targetBoardId || selectedFixedIds.size === 0) return;
+    const board = getBoard(targetBoardId);
+    if (!board) return;
+
+    fixedTasks.forEach(ft => {
+      if (selectedFixedIds.has(ft.id)) {
+        board.tasks.push({ id: board.nextId++, text: ft.text, priority: null, editing: false });
+      }
+    });
+
+    selectedFixedIds.clear();
+    saveToStorage();
+    renderAll();
+  }
+
   // ---- Renderização ----
   function renderAll() {
     renderBoardsColumn();
+    renderFixed();
     renderDiary();
   }
 
@@ -1364,6 +1581,70 @@
       list.appendChild(li);
     });
   }
+
+  // ---- Renderização das Tarefas Fixas ----
+  function renderFixed() {
+    // Atualiza o seletor de listas de destino, preservando a seleção atual quando possível
+    const previousApplyValue = fixedApplySelect.value;
+    fixedApplySelect.innerHTML = boards
+      .map(b => `<option value="${b.id}">${b.name.replace(/"/g, '&quot;')}</option>`)
+      .join('');
+    if (boards.some(b => String(b.id) === previousApplyValue)) {
+      fixedApplySelect.value = previousApplyValue;
+    } else if (expandedBoardId && boards.some(b => b.id === expandedBoardId)) {
+      fixedApplySelect.value = String(expandedBoardId);
+    }
+
+    fixedCountEl.textContent = fixedTasks.length;
+    fixedListEl.innerHTML = '';
+
+    if (fixedTasks.length === 0) {
+      fixedListEl.innerHTML = '<li style="all:unset; cursor:default;"><div class="empty-msg" style="width:100%">Nenhuma tarefa fixa cadastrada.</div></li>';
+    } else {
+      fixedTasks.forEach(ft => {
+        const li = document.createElement('li');
+        li.className = 'fixed-item';
+        li.innerHTML = `
+          <input type="checkbox" ${selectedFixedIds.has(ft.id) ? 'checked' : ''}>
+          <span class="task-text"></span>
+          <button class="delete-btn" title="Excluir tarefa fixa">&times;</button>
+        `;
+        li.querySelector('.task-text').textContent = ft.text;
+        li.querySelector('input[type="checkbox"]').addEventListener('change', (e) => {
+          toggleFixedSelection(ft.id, e.target.checked);
+        });
+        li.querySelector('.delete-btn').addEventListener('click', () => deleteFixedTask(ft.id));
+        fixedListEl.appendChild(li);
+      });
+    }
+
+    updateFixedActionsBar();
+  }
+
+  function updateFixedActionsBar() {
+    const selectedCount = selectedFixedIds.size;
+    fixedSelectionInfo.textContent = selectedCount > 0 ? `${selectedCount} selecionada${selectedCount === 1 ? '' : 's'}` : '';
+    fixedApplyBtn.disabled = selectedCount === 0 || boards.length === 0;
+    fixedSelectAllBtn.textContent = (fixedTasks.length > 0 && fixedTasks.every(t => selectedFixedIds.has(t.id)))
+      ? 'Desmarcar todas'
+      : 'Selecionar todas';
+  }
+
+  function submitFixedTask() {
+    addFixedTask(fixedTaskInput.value);
+    fixedTaskInput.value = '';
+    fixedTaskInput.focus();
+  }
+
+  fixedTaskAddBtn.addEventListener('click', submitFixedTask);
+  fixedTaskInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      submitFixedTask();
+    }
+  });
+  fixedSelectAllBtn.addEventListener('click', toggleSelectAllFixed);
+  fixedApplyBtn.addEventListener('click', applySelectedFixedTasks);
 
   // ---- Diário ----
   function getAllDoneTasks() {
