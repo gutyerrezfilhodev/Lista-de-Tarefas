@@ -89,6 +89,89 @@
     gap: 14px;
   }
 
+  /* ---- Departamentos ---- */
+  .department-section {
+    border: 2px solid var(--dept-color, var(--line));
+    border-radius: 14px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--dept-color, var(--line)) 10%, var(--panel));
+    transition: border-color 0.15s ease, background-color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+  }
+
+  .department-section.department-drag-over {
+    border-color: var(--accent);
+    background-color: rgba(110, 231, 183, 0.03);
+  }
+
+  .department-section.dept-insert-before {
+    border-top: 2px solid var(--accent);
+  }
+
+  .department-section.dept-insert-after {
+    border-bottom: 2px solid var(--accent);
+  }
+
+  .department-section.dragging {
+    opacity: 0.4;
+    transform: scale(0.98);
+  }
+
+  .department-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid color-mix(in srgb, var(--dept-color, var(--line)) 55%, transparent);
+    background: color-mix(in srgb, var(--dept-color, var(--line)) 22%, transparent);
+  }
+
+  .department-header-none {
+    color: var(--muted);
+  }
+
+  .department-color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid rgba(0,0,0,0.25);
+  }
+
+  .department-name-text {
+    flex: 1;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 0;
+    word-break: break-word;
+  }
+
+  .department-header-none .department-name-text {
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .department-mini-stats {
+    font-size: 0.68rem;
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .department-boards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .new-board-card-mini {
+    min-height: 44px;
+    padding: 12px;
+    font-size: 0.82rem;
+  }
+
   /* ---- Caixinha de lista ---- */
   .board-box {
     background: var(--panel);
@@ -437,6 +520,25 @@
     color: var(--ink);
   }
 
+  .board-dept-select {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    max-width: 110px;
+    flex-shrink: 0;
+  }
+
+  .board-dept-select:hover {
+    border-color: var(--accent-dim);
+    color: var(--ink);
+  }
+
   .move-group {
     display: flex;
     flex-direction: column;
@@ -769,6 +871,32 @@
     background: var(--line);
     color: var(--ink);
   }
+
+  .color-swatch-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .color-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.12s ease, border-color 0.12s ease;
+  }
+
+  .color-swatch:hover {
+    transform: scale(1.1);
+  }
+
+  .color-swatch.selected {
+    border-color: var(--ink);
+  }
 </style>
 </head>
 <body>
@@ -848,11 +976,32 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="department-modal">
+  <div class="modal-box">
+    <p id="department-modal-title">Novo departamento</p>
+    <input type="text" id="department-name-input" placeholder="Ex: Tecnologia, Livros, Freelas..." autocomplete="off">
+    <div class="color-swatch-row" id="department-color-row"></div>
+    <div class="modal-actions">
+      <button class="modal-yes" id="department-confirm">Salvar</button>
+      <button class="modal-no" id="department-cancel">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // ---- Estado global ----
   let boards = [];
   let nextBoardId = 1;
   let expandedBoardId = null;
+
+  // ---- Departamentos ----
+  let departments = [];
+  let nextDepartmentId = 1;
+  let draggedDepartmentId = null;
+  let editingDepartmentId = null;
+  let pendingNewBoardDepartmentId = null;
+  let selectedDepartmentColor = '#6ee7b7';
+  const DEPARTMENT_COLOR_PRESETS = ['#6ee7b7', '#4f9fe8', '#e2685f', '#e0b93f', '#c084fc', '#f472b6', '#38bdf8', '#fb923c'];
 
   // ---- Tarefas fixas ----
   let fixedTasks = [];
@@ -869,9 +1018,17 @@
 
   const STORAGE_KEY = 'lista-de-tarefas-gutyerrez';
 
+  function escAttr(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
   function saveToStorage() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ boards, nextBoardId, fixedTasks, nextFixedId }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ boards, nextBoardId, fixedTasks, nextFixedId, departments, nextDepartmentId }));
     } catch (err) {
       console.error('Não foi possível salvar os dados:', err);
     }
@@ -886,12 +1043,15 @@
           name: 'Principal',
           tasks: [],
           doneTasks: [],
-          nextId: 1
+          nextId: 1,
+          departmentId: null
         }];
         nextBoardId = 2;
         expandedBoardId = 1;
         fixedTasks = [];
         nextFixedId = 1;
+        departments = [];
+        nextDepartmentId = 1;
         return;
       }
       
@@ -908,7 +1068,8 @@
           name: 'Principal',
           tasks: Array.isArray(data.tasks) ? data.tasks : [],
           doneTasks: Array.isArray(data.doneTasks) ? data.doneTasks : [],
-          nextId: typeof data.nextId === 'number' ? data.nextId : 1
+          nextId: typeof data.nextId === 'number' ? data.nextId : 1,
+          departmentId: null
         }];
         nextBoardId = 2;
       }
@@ -918,6 +1079,7 @@
       }
 
       boards.forEach(board => {
+        if (board.departmentId === undefined) board.departmentId = null;
         (board.tasks || []).forEach(t => {
           t.editing = false;
           if (t.priority === undefined) t.priority = null;
@@ -928,13 +1090,20 @@
       nextFixedId = typeof data.nextFixedId === 'number'
         ? data.nextFixedId
         : (fixedTasks.length > 0 ? Math.max(0, ...fixedTasks.map(t => t.id)) + 1 : 1);
+
+      departments = Array.isArray(data.departments) ? data.departments : [];
+      nextDepartmentId = typeof data.nextDepartmentId === 'number'
+        ? data.nextDepartmentId
+        : (departments.length > 0 ? Math.max(0, ...departments.map(d => d.id)) + 1 : 1);
     } catch (err) {
       console.error('Não foi possível carregar as listas salvas:', err);
-      boards = [{ id: 1, name: 'Principal', tasks: [], doneTasks: [], nextId: 1 }];
+      boards = [{ id: 1, name: 'Principal', tasks: [], doneTasks: [], nextId: 1, departmentId: null }];
       nextBoardId = 2;
       expandedBoardId = 1;
       fixedTasks = [];
       nextFixedId = 1;
+      departments = [];
+      nextDepartmentId = 1;
     }
   }
 
@@ -987,7 +1156,8 @@
   const newBoardModal = document.getElementById('new-board-modal');
   const newBoardInput = document.getElementById('new-board-input');
 
-  function openNewBoardModal() {
+  function openNewBoardModal(departmentId = null) {
+    pendingNewBoardDepartmentId = departmentId;
     newBoardInput.value = '';
     newBoardModal.classList.add('open');
     setTimeout(() => newBoardInput.focus(), 50);
@@ -1000,9 +1170,10 @@
   function createBoard() {
     const name = newBoardInput.value.trim();
     if (!name) { newBoardInput.focus(); return; }
-    const board = { id: nextBoardId++, name, tasks: [], doneTasks: [], nextId: 1 };
+    const board = { id: nextBoardId++, name, tasks: [], doneTasks: [], nextId: 1, departmentId: pendingNewBoardDepartmentId };
     boards.push(board);
     expandedBoardId = board.id;
+    pendingNewBoardDepartmentId = null;
     saveToStorage();
     closeNewBoardModal();
     renderAll();
@@ -1029,6 +1200,129 @@
       saveToStorage();
       renderAll();
     });
+  }
+
+  // ---- Modal de Departamentos ----
+  const departmentModal = document.getElementById('department-modal');
+  const departmentNameInput = document.getElementById('department-name-input');
+  const departmentModalTitle = document.getElementById('department-modal-title');
+  const departmentColorRow = document.getElementById('department-color-row');
+
+  function openDepartmentModal(dept = null) {
+    editingDepartmentId = dept ? dept.id : null;
+    departmentModalTitle.textContent = dept ? 'Editar departamento' : 'Novo departamento';
+    departmentNameInput.value = dept ? dept.name : '';
+    selectedDepartmentColor = dept ? dept.color : DEPARTMENT_COLOR_PRESETS[0];
+    renderColorSwatches();
+    departmentModal.classList.add('open');
+    setTimeout(() => departmentNameInput.focus(), 50);
+  }
+
+  function closeDepartmentModal() {
+    departmentModal.classList.remove('open');
+    editingDepartmentId = null;
+  }
+
+  function renderColorSwatches() {
+    departmentColorRow.innerHTML = '';
+    DEPARTMENT_COLOR_PRESETS.forEach(color => {
+      const swatch = document.createElement('button');
+      swatch.type = 'button';
+      swatch.className = 'color-swatch' + (color === selectedDepartmentColor ? ' selected' : '');
+      swatch.style.background = color;
+      swatch.title = color;
+      swatch.addEventListener('click', () => {
+        selectedDepartmentColor = color;
+        renderColorSwatches();
+      });
+      departmentColorRow.appendChild(swatch);
+    });
+  }
+
+  function saveDepartmentModal() {
+    const name = departmentNameInput.value.trim();
+    if (!name) { departmentNameInput.focus(); return; }
+
+    if (editingDepartmentId !== null) {
+      const dept = departments.find(d => d.id === editingDepartmentId);
+      if (dept) {
+        dept.name = name;
+        dept.color = selectedDepartmentColor;
+      }
+    } else {
+      departments.push({ id: nextDepartmentId++, name, color: selectedDepartmentColor });
+    }
+
+    saveToStorage();
+    closeDepartmentModal();
+    renderBoardsColumn();
+  }
+
+  document.getElementById('department-confirm').addEventListener('click', saveDepartmentModal);
+  document.getElementById('department-cancel').addEventListener('click', closeDepartmentModal);
+  departmentNameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); saveDepartmentModal(); }
+    if (e.key === 'Escape') closeDepartmentModal();
+  });
+  departmentModal.addEventListener('click', (e) => {
+    if (e.target === departmentModal) closeDepartmentModal();
+  });
+
+  function confirmDeleteDepartment(id) {
+    const dept = departments.find(d => d.id === id);
+    if (!dept) return;
+    showConfirm(`Excluir o departamento "${dept.name}"? As listas dele irão para "Sem departamento".`, () => {
+      boards.forEach(b => { if (b.departmentId === id) b.departmentId = null; });
+      departments = departments.filter(d => d.id !== id);
+      saveToStorage();
+      renderBoardsColumn();
+    });
+  }
+
+  function reorderDepartment(sourceId, targetId, insertBefore) {
+    if (sourceId === targetId) return;
+    const sourceIndex = departments.findIndex(d => d.id === sourceId);
+    if (sourceIndex === -1) return;
+    const [moved] = departments.splice(sourceIndex, 1);
+
+    const targetIndex = departments.findIndex(d => d.id === targetId);
+    if (targetIndex === -1) {
+      departments.push(moved);
+    } else {
+      const insertIndex = insertBefore ? targetIndex : targetIndex + 1;
+      departments.splice(insertIndex, 0, moved);
+    }
+
+    saveToStorage();
+    renderBoardsColumn();
+  }
+
+  function moveBoardToDepartment(boardId, deptId) {
+    const idx = boards.findIndex(b => b.id === boardId);
+    if (idx === -1) return;
+    const [board] = boards.splice(idx, 1);
+    board.departmentId = deptId || null;
+
+    let insertAt = boards.length;
+    for (let i = boards.length - 1; i >= 0; i--) {
+      if ((boards[i].departmentId || null) === (deptId || null)) {
+        insertAt = i + 1;
+        break;
+      }
+    }
+    boards.splice(insertAt, 0, board);
+
+    saveToStorage();
+    renderBoardsColumn();
+  }
+
+  function buildDepartmentOptionsHTML(selectedDeptId) {
+    let html = `<option value="" ${!selectedDeptId ? 'selected' : ''}>Sem departamento</option>`;
+    departments.forEach(d => {
+      const sel = String(d.id) === String(selectedDeptId) ? 'selected' : '';
+      html += `<option value="${d.id}" ${sel}>${escAttr(d.name)}</option>`;
+    });
+    return html;
   }
 
   // ---- Operações com Tarefas ----
@@ -1119,13 +1413,22 @@
   function moveBoard(boardId, direction) {
     const idx = boards.findIndex(b => b.id === boardId);
     if (idx === -1) return;
+    const deptId = boards[idx].departmentId || null;
 
-    if (direction === 'up' && idx > 0) {
-      [boards[idx - 1], boards[idx]] = [boards[idx], boards[idx - 1]];
-    } else if (direction === 'down' && idx < boards.length - 1) {
-      [boards[idx], boards[idx + 1]] = [boards[idx + 1], boards[idx]];
+    if (direction === 'up') {
+      for (let i = idx - 1; i >= 0; i--) {
+        if ((boards[i].departmentId || null) === deptId) {
+          [boards[i], boards[idx]] = [boards[idx], boards[i]];
+          break;
+        }
+      }
     } else {
-      return;
+      for (let i = idx + 1; i < boards.length; i++) {
+        if ((boards[i].departmentId || null) === deptId) {
+          [boards[idx], boards[i]] = [boards[i], boards[idx]];
+          break;
+        }
+      }
     }
     saveToStorage();
     renderBoardsColumn();
@@ -1133,9 +1436,14 @@
 
   function reorderBoard(sourceBoardId, targetBoardId, insertBefore) {
     if (sourceBoardId === targetBoardId) return;
+    const targetBoardRef = getBoard(targetBoardId);
+    if (!targetBoardRef) return;
+    const targetDeptId = targetBoardRef.departmentId || null;
+
     const sourceIndex = boards.findIndex(b => b.id === sourceBoardId);
     if (sourceIndex === -1) return;
     const [movedBoard] = boards.splice(sourceIndex, 1);
+    movedBoard.departmentId = targetDeptId;
 
     const targetIndex = boards.findIndex(b => b.id === targetBoardId);
     if (targetIndex === -1) {
@@ -1244,15 +1552,140 @@
   function renderBoardsColumn() {
     boardsColumn.innerHTML = '';
 
-    boards.forEach(board => {
-      boardsColumn.appendChild(buildBoardBox(board));
+    const ungrouped = boards.filter(b => !b.departmentId);
+    boardsColumn.appendChild(buildDepartmentSection(null, ungrouped));
+
+    departments.forEach(dept => {
+      const deptBoards = boards.filter(b => b.departmentId === dept.id);
+      boardsColumn.appendChild(buildDepartmentSection(dept, deptBoards));
     });
 
-    const newCard = document.createElement('div');
-    newCard.className = 'new-board-card';
-    newCard.innerHTML = '<span>+</span><span>Criar Lista de Tarefas</span>';
-    newCard.addEventListener('click', openNewBoardModal);
-    boardsColumn.appendChild(newCard);
+    const newDeptCard = document.createElement('div');
+    newDeptCard.className = 'new-board-card';
+    newDeptCard.innerHTML = '<span>+</span><span>Criar Departamento</span>';
+    newDeptCard.addEventListener('click', () => openDepartmentModal());
+    boardsColumn.appendChild(newDeptCard);
+  }
+
+  function buildDepartmentSection(dept, deptBoards) {
+    const section = document.createElement('div');
+    section.className = 'department-section';
+    section.dataset.departmentId = dept ? dept.id : 'none';
+    if (dept) {
+      section.style.setProperty('--dept-color', dept.color);
+    }
+
+    // EVENTOS DE DRAG AND DROP NA SEÇÃO DO DEPARTAMENTO
+    section.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (dept && draggedDepartmentId !== null) {
+        if (draggedDepartmentId !== dept.id) {
+          const rect = section.getBoundingClientRect();
+          const isTopHalf = (e.clientY - rect.top) < rect.height / 2;
+          section.classList.toggle('dept-insert-before', isTopHalf);
+          section.classList.toggle('dept-insert-after', !isTopHalf);
+        }
+      } else if (draggedBoardId !== null) {
+        section.classList.add('department-drag-over');
+      }
+    });
+
+    section.addEventListener('dragleave', (e) => {
+      if (!section.contains(e.relatedTarget)) {
+        section.classList.remove('department-drag-over', 'dept-insert-before', 'dept-insert-after');
+      }
+    });
+
+    section.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const insertBefore = section.classList.contains('dept-insert-before');
+      section.classList.remove('department-drag-over', 'dept-insert-before', 'dept-insert-after');
+
+      if (dept && draggedDepartmentId !== null) {
+        reorderDepartment(draggedDepartmentId, dept.id, insertBefore);
+        return;
+      }
+
+      if (draggedBoardId !== null && !e.target.closest('.board-box')) {
+        moveBoardToDepartment(draggedBoardId, dept ? dept.id : null);
+      }
+    });
+
+    const header = document.createElement('div');
+    header.className = 'department-header';
+
+    if (!dept) {
+      header.classList.add('department-header-none');
+      header.innerHTML = `
+        <span class="department-name-text">Sem departamento</span>
+        <span class="department-mini-stats">${deptBoards.length} lista${deptBoards.length === 1 ? '' : 's'}</span>
+      `;
+    } else {
+      header.innerHTML = `
+        <span class="drag-handle department-drag-handle" title="Arrastar departamento" draggable="true">&#9776;</span>
+        <span class="department-color-dot"></span>
+        <span class="department-name-text"></span>
+        <span class="department-mini-stats">${deptBoards.length} lista${deptBoards.length === 1 ? '' : 's'}</span>
+        <button class="rename-btn department-edit-btn" title="Editar departamento">&#9998;</button>
+        <button class="board-delete-btn department-delete-btn" title="Excluir departamento">&times;</button>
+      `;
+      header.querySelector('.department-name-text').textContent = dept.name;
+      header.querySelector('.department-color-dot').style.background = dept.color;
+
+      const deptDragHandle = header.querySelector('.department-drag-handle');
+      deptDragHandle.addEventListener('click', (e) => e.stopPropagation());
+      deptDragHandle.addEventListener('dragstart', (e) => {
+        e.stopPropagation();
+        draggedDepartmentId = dept.id;
+        section.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(dept.id));
+      });
+      deptDragHandle.addEventListener('dragend', (e) => {
+        e.stopPropagation();
+        draggedDepartmentId = null;
+        document.querySelectorAll('.department-section.dragging').forEach(el => el.classList.remove('dragging'));
+        document.querySelectorAll('.dept-insert-before, .dept-insert-after').forEach(el => {
+          el.classList.remove('dept-insert-before', 'dept-insert-after');
+        });
+      });
+
+      header.querySelector('.department-edit-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDepartmentModal(dept);
+      });
+
+      header.querySelector('.department-delete-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        confirmDeleteDepartment(dept.id);
+      });
+    }
+
+    section.appendChild(header);
+
+    const boardsWrap = document.createElement('div');
+    boardsWrap.className = 'department-boards';
+
+    if (deptBoards.length === 0) {
+      const emptyMsg = document.createElement('div');
+      emptyMsg.className = 'empty-msg';
+      emptyMsg.textContent = dept ? 'Nenhuma lista neste departamento ainda.' : 'Nenhuma lista sem departamento.';
+      boardsWrap.appendChild(emptyMsg);
+    }
+
+    deptBoards.forEach(board => {
+      boardsWrap.appendChild(buildBoardBox(board));
+    });
+
+    const addCard = document.createElement('div');
+    addCard.className = 'new-board-card new-board-card-mini';
+    addCard.innerHTML = '<span>+</span><span>Adicionar lista</span>';
+    addCard.addEventListener('click', () => openNewBoardModal(dept ? dept.id : null));
+    boardsWrap.appendChild(addCard);
+
+    section.appendChild(boardsWrap);
+
+    return section;
   }
 
   function buildBoardBox(board) {
@@ -1265,6 +1698,7 @@
     // EVENTOS DE DRAG & DROP NA CAIXA DA LISTA (Drop Target)
     box.addEventListener('dragover', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       if (draggedBoardId !== null) {
         // Arrastando uma lista inteira: indica se vai inserir antes ou depois desta caixa
         if (draggedBoardId !== board.id) {
@@ -1288,6 +1722,7 @@
 
     box.addEventListener('drop', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       const insertBefore = box.classList.contains('board-insert-before');
       box.classList.remove('drag-over');
       box.classList.remove('board-insert-before');
@@ -1306,9 +1741,10 @@
       }
     });
 
-    const boardIndex = boards.indexOf(board);
-    const isFirstBoard = boardIndex === 0;
-    const isLastBoard = boardIndex === boards.length - 1;
+    const deptSiblings = boards.filter(b => (b.departmentId || null) === (board.departmentId || null));
+    const posInDept = deptSiblings.indexOf(board);
+    const isFirstBoard = posInDept === 0;
+    const isLastBoard = posInDept === deptSiblings.length - 1;
 
     const header = document.createElement('div');
     header.className = 'board-box-header';
@@ -1321,6 +1757,9 @@
       <button class="rename-btn" title="Renomear lista">&#9998;</button>
       <h3 class="board-name-text"></h3>
       <span class="board-mini-stats">${board.tasks.length}p · ${board.doneTasks.length}c</span>
+      <select class="board-dept-select" title="Mover para departamento">
+        ${buildDepartmentOptionsHTML(board.departmentId)}
+      </select>
       <button class="board-delete-btn" title="Excluir lista">&times;</button>
     `;
     header.querySelector('.board-name-text').textContent = board.name;
@@ -1356,6 +1795,14 @@
     header.querySelector('.rename-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       startRenameBoard(board, header);
+    });
+
+    const boardDeptSelect = header.querySelector('.board-dept-select');
+    boardDeptSelect.addEventListener('click', (e) => e.stopPropagation());
+    boardDeptSelect.addEventListener('change', (e) => {
+      e.stopPropagation();
+      const val = e.target.value;
+      moveBoardToDepartment(board.id, val ? parseInt(val, 10) : null);
     });
 
     header.querySelector('.board-delete-btn').addEventListener('click', (e) => {
