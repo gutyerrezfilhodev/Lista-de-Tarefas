@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lista de Tarefas - Gutyerrez Filho</title>
 <style>
   :root {
@@ -19,7 +19,12 @@
     --pri-blue: #4f9fe8;
     --pri-green: #5fd88a;
     --pri-none: #4a4e58;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
 
   * { box-sizing: border-box; }
 
@@ -520,6 +525,25 @@
     color: var(--ink);
   }
 
+  .move-hour-select {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 3px 5px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    max-width: 100px;
+    flex-shrink: 0;
+  }
+
+  .move-hour-select:hover {
+    border-color: var(--accent-dim);
+    color: var(--ink);
+  }
+
   .board-dept-select {
     background: var(--bg);
     border: 1px solid var(--line);
@@ -688,6 +712,86 @@
 
   .report-hour-block .report-tasks {
     color: var(--ink);
+  }
+
+  /* ---- Lista do dia ---- */
+  .daily-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--ink);
+    text-transform: none;
+    letter-spacing: normal;
+    margin: 0 0 16px;
+  }
+
+  .daily-hour-row {
+    display: flex;
+    gap: 12px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .daily-hour-row:last-child { border-bottom: none; }
+
+  .daily-hour-left {
+    min-width: 40px;
+    flex-shrink: 0;
+    padding-top: 8px;
+  }
+
+  .daily-hour-row.has-tasks .hour-label {
+    color: var(--accent);
+  }
+
+  .daily-hour-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 4px;
+    border-radius: 10px;
+    transition: background-color 0.15s ease;
+  }
+
+  .daily-hour-body.drag-over {
+    background-color: rgba(110, 231, 183, 0.06);
+    outline: 2px dashed var(--accent-dim);
+  }
+
+  .daily-task-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .daily-task-list li.task-done .task-text {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+
+  .daily-add-form {
+    display: flex;
+    gap: 8px;
+  }
+
+  .daily-add-form input[type="text"] {
+    font-size: 0.82rem;
+    padding: 8px 10px;
+  }
+
+  .daily-add-form .add-btn {
+    padding: 0 14px;
+    flex-shrink: 0;
+  }
+
+  .daily-hour-full-msg {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-style: italic;
   }
 
   /* ---- Tarefas Fixas ---- */
@@ -897,6 +1001,14 @@
   .color-swatch.selected {
     border-color: var(--ink);
   }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1b1d22;
+      --panel: #23262d;
+      --ink: #eef0f3;
+    }
+  }
 </style>
 </head>
 <body>
@@ -906,12 +1018,20 @@
   <p class="subtitle" id="date-subtitle"></p>
 
   <div class="tabs-nav">
-    <button class="tab-btn active" data-tab="tasks">Tarefas</button>
+    <button class="tab-btn active" data-tab="daily">Lista do dia</button>
+    <button class="tab-btn" data-tab="tasks">Tarefas</button>
     <button class="tab-btn" data-tab="fixed">Tarefas Fixas</button>
     <button class="tab-btn" data-tab="diary">Diário</button>
   </div>
 
-  <div class="tab-panel active" id="tab-tasks">
+  <div class="tab-panel active" id="tab-daily">
+    <div class="diary-panel">
+      <h2 class="daily-title" id="daily-title">Lista do dia</h2>
+      <div class="hour-timeline" id="daily-hour-list"></div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-tasks">
     <div class="boards-column" id="boards-column"></div>
   </div>
 
@@ -989,6 +1109,8 @@
 </div>
 
 <script>
+  const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
   // ---- Estado global ----
   let boards = [];
   let nextBoardId = 1;
@@ -1008,10 +1130,18 @@
   let nextFixedId = 1;
   let selectedFixedIds = new Set();
 
+  // ---- Lista do dia (agenda por horário) ----
+  let dailySchedule = {};
+  let nextDailyId = 1;
+
   // Controle de estado para a API de Drag and Drop
   let draggedTaskId = null;
   let draggedSourceBoardId = null;
   let draggedBoardId = null;
+
+  // Drag and drop dentro da Lista do dia (entre horários)
+  let draggedDailyTaskId = null;
+  let draggedDailySourceHour = null;
 
   const PRIORITY_ORDER = ['red', 'yellow', 'blue', 'green', null];
   const PRIORITY_COLORS = { red: '#e2685f', yellow: '#e0b93f', blue: '#4f9fe8', green: '#5fd88a', null: '#4a4e58' };
@@ -1028,7 +1158,7 @@
 
   function saveToStorage() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ boards, nextBoardId, fixedTasks, nextFixedId, departments, nextDepartmentId }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ boards, nextBoardId, fixedTasks, nextFixedId, departments, nextDepartmentId, dailySchedule, nextDailyId }));
     } catch (err) {
       console.error('Não foi possível salvar os dados:', err);
     }
@@ -1052,6 +1182,8 @@
         nextFixedId = 1;
         departments = [];
         nextDepartmentId = 1;
+        dailySchedule = {};
+        nextDailyId = 1;
         return;
       }
       
@@ -1095,6 +1227,20 @@
       nextDepartmentId = typeof data.nextDepartmentId === 'number'
         ? data.nextDepartmentId
         : (departments.length > 0 ? Math.max(0, ...departments.map(d => d.id)) + 1 : 1);
+
+      dailySchedule = (data.dailySchedule && typeof data.dailySchedule === 'object') ? data.dailySchedule : {};
+      nextDailyId = typeof data.nextDailyId === 'number' ? data.nextDailyId : 1;
+
+      Object.keys(dailySchedule).forEach(dateKey => {
+        const daySchedule = dailySchedule[dateKey] || {};
+        Object.keys(daySchedule).forEach(hourKey => {
+          (daySchedule[hourKey] || []).forEach(t => {
+            if (t.priority === undefined) t.priority = null;
+            if (t.editing === undefined) t.editing = false;
+            if (t.done === undefined) t.done = false;
+          });
+        });
+      });
     } catch (err) {
       console.error('Não foi possível carregar as listas salvas:', err);
       boards = [{ id: 1, name: 'Principal', tasks: [], doneTasks: [], nextId: 1, departmentId: null }];
@@ -1104,6 +1250,8 @@
       nextFixedId = 1;
       departments = [];
       nextDepartmentId = 1;
+      dailySchedule = {};
+      nextDailyId = 1;
     }
   }
 
@@ -1120,6 +1268,9 @@
   const fixedSelectionInfo = document.getElementById('fixed-selection-info');
   const fixedApplySelect = document.getElementById('fixed-apply-select');
   const fixedApplyBtn = document.getElementById('fixed-apply-btn');
+
+  const dailyTitleEl = document.getElementById('daily-title');
+  const dailyHourListEl = document.getElementById('daily-hour-list');
 
   function getBoard(id) {
     return boards.find(b => b.id === id);
@@ -1542,8 +1693,399 @@
     renderAll();
   }
 
+  // ---- Operações da Lista do dia ----
+  function getTodayKey() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function ensureTodaySchedule() {
+    const key = getTodayKey();
+    if (!dailySchedule[key]) {
+      dailySchedule[key] = {};
+    }
+    return dailySchedule[key];
+  }
+
+  const MAX_TASKS_PER_HOUR = 6;
+
+  function addDailyTask(hour, text) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const schedule = ensureTodaySchedule();
+    if (!schedule[hour]) schedule[hour] = [];
+    if (schedule[hour].length >= MAX_TASKS_PER_HOUR) return;
+    schedule[hour].push({ id: nextDailyId++, text: trimmed, priority: null, done: false, editing: false });
+    saveToStorage();
+    renderDailyList();
+  }
+
+  function buildHourOptionsHTML() {
+    const schedule = dailySchedule[getTodayKey()] || {};
+    let html = '<option value="" disabled selected>Enviar p/ hora</option>';
+    for (let h = 0; h < 24; h++) {
+      const count = (schedule[h] || []).length;
+      const full = count >= MAX_TASKS_PER_HOUR;
+      html += `<option value="${h}" ${full ? 'disabled' : ''}>${h}h${full ? ' (cheio)' : ` (${count}/${MAX_TASKS_PER_HOUR})`}</option>`;
+    }
+    return html;
+  }
+
+  function buildDailyMoveHourOptionsHTML(currentHour) {
+    const schedule = dailySchedule[getTodayKey()] || {};
+    let html = '<option value="" disabled selected>Mover p/...</option>';
+    for (let h = 0; h < 24; h++) {
+      if (h === currentHour) continue;
+      const count = (schedule[h] || []).length;
+      const full = count >= MAX_TASKS_PER_HOUR;
+      html += `<option value="${h}" ${full ? 'disabled' : ''}>${h}h${full ? ' (cheio)' : ''}</option>`;
+    }
+    return html;
+  }
+
+  function moveTaskToHour(boardId, taskId, hour) {
+    const board = getBoard(boardId);
+    if (!board) return;
+    const schedule = ensureTodaySchedule();
+    if (!schedule[hour]) schedule[hour] = [];
+    if (schedule[hour].length >= MAX_TASKS_PER_HOUR) return;
+
+    const taskIdx = board.tasks.findIndex(t => t.id === taskId);
+    if (taskIdx === -1) return;
+
+    const [task] = board.tasks.splice(taskIdx, 1);
+    schedule[hour].push({ id: nextDailyId++, text: task.text, priority: null, done: false, editing: false });
+    saveToStorage();
+    renderAll();
+  }
+
+  function moveDailyTaskToHour(fromHour, toHour, taskId, targetIndex = null) {
+    const schedule = ensureTodaySchedule();
+    const fromArr = schedule[fromHour] || [];
+    const idx = fromArr.findIndex(t => t.id === taskId);
+    if (idx === -1) return;
+
+    if (!schedule[toHour]) schedule[toHour] = [];
+    if (fromHour !== toHour && schedule[toHour].length >= MAX_TASKS_PER_HOUR) return;
+
+    const [task] = fromArr.splice(idx, 1);
+    schedule[fromHour] = fromArr;
+
+    if (targetIndex !== null && targetIndex >= 0) {
+      schedule[toHour].splice(targetIndex, 0, task);
+    } else {
+      schedule[toHour].push(task);
+    }
+
+    saveToStorage();
+    renderDailyList();
+  }
+
+  function sortDailyTasks(hour) {
+    const schedule = ensureTodaySchedule();
+    if (!schedule[hour]) return;
+    schedule[hour].sort((a, b) => PRIORITY_ORDER.indexOf(a.priority || null) - PRIORITY_ORDER.indexOf(b.priority || null));
+  }
+
+  function setDailyPriority(hour, id, value) {
+    const schedule = ensureTodaySchedule();
+    const arr = schedule[hour] || [];
+    const task = arr.find(t => t.id === id);
+    if (!task) return;
+    task.priority = value || null;
+    sortDailyTasks(hour);
+    saveToStorage();
+    renderDailyList();
+  }
+
+  function moveDailyTask(hour, id, direction) {
+    const schedule = ensureTodaySchedule();
+    const arr = schedule[hour] || [];
+    const idx = arr.findIndex(t => t.id === id);
+    if (idx === -1) return;
+    const current = arr[idx].priority || null;
+
+    if (direction === 'up') {
+      const prevIdx = idx - 1;
+      if (prevIdx >= 0 && (arr[prevIdx].priority || null) === current) {
+        [arr[prevIdx], arr[idx]] = [arr[idx], arr[prevIdx]];
+      }
+    } else {
+      const nextIdx = idx + 1;
+      if (nextIdx < arr.length && (arr[nextIdx].priority || null) === current) {
+        [arr[idx], arr[nextIdx]] = [arr[nextIdx], arr[idx]];
+      }
+    }
+    saveToStorage();
+    renderDailyList();
+  }
+
+  function startDailyEdit(hour, id) {
+    const schedule = ensureTodaySchedule();
+    const task = (schedule[hour] || []).find(t => t.id === id);
+    if (!task) return;
+    task.editing = true;
+    renderDailyList();
+  }
+
+  function saveDailyEdit(hour, id, newText) {
+    const schedule = ensureTodaySchedule();
+    const task = (schedule[hour] || []).find(t => t.id === id);
+    if (!task) return;
+    const trimmed = newText.trim();
+    if (trimmed) task.text = trimmed;
+    task.editing = false;
+    saveToStorage();
+    renderDailyList();
+  }
+
+  function toggleDailyTaskDone(hour, id) {
+    const schedule = ensureTodaySchedule();
+    const arr = schedule[hour] || [];
+    const task = arr.find(t => t.id === id);
+    if (!task) return;
+    if (!task.done) {
+      showConfirm('Essa tarefa foi realmente concluída?', () => {
+        task.done = true;
+        saveToStorage();
+        renderDailyList();
+      });
+    } else {
+      task.done = false;
+      saveToStorage();
+      renderDailyList();
+    }
+  }
+
+  function deleteDailyTask(hour, id) {
+    const schedule = ensureTodaySchedule();
+    if (schedule[hour]) {
+      schedule[hour] = schedule[hour].filter(t => t.id !== id);
+    }
+    saveToStorage();
+    renderDailyList();
+  }
+
+  function buildDailyHourRow(hour, tasksArr) {
+    const row = document.createElement('div');
+    row.className = 'daily-hour-row' + (tasksArr.length > 0 ? ' has-tasks' : '');
+
+    const left = document.createElement('div');
+    left.className = 'daily-hour-left';
+    const label = document.createElement('span');
+    label.className = 'hour-label';
+    label.textContent = `${hour}h`;
+    left.appendChild(label);
+    row.appendChild(left);
+
+    const body = document.createElement('div');
+    body.className = 'daily-hour-body';
+
+    body.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (draggedDailyTaskId !== null) {
+        body.classList.add('drag-over');
+      }
+    });
+
+    body.addEventListener('dragleave', (e) => {
+      if (!body.contains(e.relatedTarget)) {
+        body.classList.remove('drag-over');
+      }
+    });
+
+    body.addEventListener('drop', (e) => {
+      e.preventDefault();
+      body.classList.remove('drag-over');
+      if (draggedDailyTaskId !== null && draggedDailySourceHour !== null && !e.target.closest('li')) {
+        moveDailyTaskToHour(draggedDailySourceHour, hour, draggedDailyTaskId);
+      }
+    });
+
+    const list = document.createElement('ul');
+    list.className = 'daily-task-list';
+
+    tasksArr.forEach((task, i) => {
+      const li = document.createElement('li');
+      li.dataset.taskId = task.id;
+      li.dataset.hour = hour;
+
+      const priority = task.priority || null;
+      if (priority) li.classList.add('pri-' + priority);
+      if (task.done) li.classList.add('task-done');
+
+      const isFirstInGroup = i === 0 || (tasksArr[i - 1].priority || null) !== priority;
+      const isLastInGroup = i === tasksArr.length - 1 || (tasksArr[i + 1].priority || null) !== priority;
+
+      if (task.editing) {
+        li.draggable = false;
+        li.innerHTML = `
+          <div class="task-top-row">
+            <div class="task-top-left">
+              <span class="index">${i + 1}</span>
+            </div>
+            <div class="task-top-right">
+              <button class="edit-btn" title="Salvar">&#10003;</button>
+            </div>
+          </div>
+          <input type="text" class="edit-input" value="${escAttr(task.text)}">
+        `;
+        const editInput = li.querySelector('.edit-input');
+        li.querySelector('.edit-btn').addEventListener('click', () => saveDailyEdit(hour, task.id, editInput.value));
+        editInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') saveDailyEdit(hour, task.id, editInput.value);
+          if (e.key === 'Escape') { task.editing = false; renderDailyList(); }
+        });
+        list.appendChild(li);
+        editInput.focus();
+        editInput.select();
+        return;
+      }
+
+      li.draggable = true;
+
+      li.addEventListener('dragstart', (e) => {
+        draggedDailyTaskId = task.id;
+        draggedDailySourceHour = hour;
+        li.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', JSON.stringify({ hour, taskId: task.id }));
+      });
+
+      li.addEventListener('dragend', () => {
+        draggedDailyTaskId = null;
+        draggedDailySourceHour = null;
+        li.classList.remove('dragging');
+        document.querySelectorAll('.drag-over-item').forEach(el => el.classList.remove('drag-over-item'));
+        document.querySelectorAll('.daily-hour-body.drag-over').forEach(el => el.classList.remove('drag-over'));
+      });
+
+      li.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (draggedDailyTaskId !== null && draggedDailyTaskId !== task.id) {
+          li.classList.add('drag-over-item');
+        }
+      });
+
+      li.addEventListener('dragleave', () => {
+        li.classList.remove('drag-over-item');
+      });
+
+      li.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        li.classList.remove('drag-over-item');
+        if (draggedDailyTaskId !== null && draggedDailySourceHour !== null) {
+          moveDailyTaskToHour(draggedDailySourceHour, hour, draggedDailyTaskId, i);
+        }
+      });
+
+      li.innerHTML = `
+        <div class="task-top-row">
+          <div class="task-top-left">
+            <span class="drag-handle" title="Arrastar tarefa">&#9776;</span>
+            <span class="index">${i + 1}</span>
+            <div class="move-group">
+              <button class="move-btn daily-move-up" title="Mover para cima" ${isFirstInGroup ? 'disabled' : ''}>&#9650;</button>
+              <button class="move-btn daily-move-down" title="Mover para baixo" ${isLastInGroup ? 'disabled' : ''}>&#9660;</button>
+            </div>
+            <button class="check-btn" title="Marcar como concluída"></button>
+          </div>
+          <div class="task-top-right">
+            <select class="move-board-select daily-hour-select" title="Mover para outro horário">
+              ${buildDailyMoveHourOptionsHTML(hour)}
+            </select>
+            <select class="priority-select" title="Classificar prioridade">
+              <option value="">Sem cor</option>
+              <option value="red">Urgente</option>
+              <option value="yellow">Média</option>
+              <option value="blue">Baixa</option>
+              <option value="green">Adiável</option>
+            </select>
+            <button class="edit-btn" title="Editar">&#9998;</button>
+            <button class="delete-btn" title="Excluir">&times;</button>
+          </div>
+        </div>
+        <span class="task-text"></span>
+      `;
+      li.querySelector('.task-text').textContent = task.text;
+
+      const select = li.querySelector('.priority-select');
+      select.value = priority || '';
+      select.style.background = PRIORITY_COLORS[priority || null];
+      select.addEventListener('change', (e) => setDailyPriority(hour, task.id, e.target.value));
+
+      li.querySelector('.daily-hour-select').addEventListener('change', (e) => {
+        const targetHour = parseInt(e.target.value, 10);
+        if (!Number.isNaN(targetHour)) {
+          moveDailyTaskToHour(hour, targetHour, task.id);
+        }
+      });
+
+      li.querySelector('.daily-move-up').addEventListener('click', () => moveDailyTask(hour, task.id, 'up'));
+      li.querySelector('.daily-move-down').addEventListener('click', () => moveDailyTask(hour, task.id, 'down'));
+      li.querySelector('.check-btn').addEventListener('click', () => toggleDailyTaskDone(hour, task.id));
+      li.querySelector('.edit-btn').addEventListener('click', () => startDailyEdit(hour, task.id));
+      li.querySelector('.delete-btn').addEventListener('click', () => deleteDailyTask(hour, task.id));
+
+      list.appendChild(li);
+    });
+
+    body.appendChild(list);
+
+    if (tasksArr.length >= MAX_TASKS_PER_HOUR) {
+      const fullMsg = document.createElement('div');
+      fullMsg.className = 'daily-hour-full-msg';
+      fullMsg.textContent = `Limite de ${MAX_TASKS_PER_HOUR} tarefas atingido para este horário.`;
+      body.appendChild(fullMsg);
+    } else {
+      const form = document.createElement('div');
+      form.className = 'daily-add-form';
+      form.innerHTML = `
+        <input type="text" class="daily-task-input" placeholder="Agendar algo para ${hour}h..." autocomplete="off">
+        <button type="button" class="add-btn">+</button>
+      `;
+      const input = form.querySelector('.daily-task-input');
+      const addBtn = form.querySelector('.add-btn');
+      function submit() {
+        addDailyTask(hour, input.value);
+        input.value = '';
+        input.focus();
+      }
+      addBtn.addEventListener('click', submit);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); submit(); }
+      });
+      body.appendChild(form);
+    }
+
+    row.appendChild(body);
+    return row;
+  }
+
+  function renderDailyList() {
+    const key = getTodayKey();
+    const schedule = dailySchedule[key] || {};
+
+    const d = new Date();
+    const dayNum = d.getDate();
+    const monthName = MESES[d.getMonth()];
+    dailyTitleEl.textContent = `Lista do dia - ${dayNum} de ${monthName}`;
+
+    dailyHourListEl.innerHTML = '';
+    for (let h = 0; h < 24; h++) {
+      const tasksArr = schedule[h] || [];
+      dailyHourListEl.appendChild(buildDailyHourRow(h, tasksArr));
+    }
+  }
+
   // ---- Renderização ----
   function renderAll() {
+    renderDailyList();
     renderBoardsColumn();
     renderFixed();
     renderDiary();
@@ -1989,6 +2531,9 @@
                 ${boardOptions}
               </select>
             ` : ''}
+            <select class="move-hour-select" title="Enviar para um horário da Lista do dia">
+              ${buildHourOptionsHTML()}
+            </select>
             <select class="priority-select" title="Classificar prioridade">
               <option value="">Sem cor</option>
               <option value="red">Urgente</option>
@@ -2016,6 +2561,16 @@
           const targetBoardId = parseInt(e.target.value, 10);
           if (targetBoardId) {
             moveTaskToBoard(board.id, targetBoardId, task.id);
+          }
+        });
+      }
+
+      const moveHourSelect = li.querySelector('.move-hour-select');
+      if (moveHourSelect) {
+        moveHourSelect.addEventListener('change', (e) => {
+          const hour = parseInt(e.target.value, 10);
+          if (!Number.isNaN(hour)) {
+            moveTaskToHour(board.id, task.id, hour);
           }
         });
       }
@@ -2210,10 +2765,9 @@
   }
 
   function setDateSubtitle() {
-    const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
     const hoje = new Date();
     const dia = hoje.getDate();
-    const mes = meses[hoje.getMonth()];
+    const mes = MESES[hoje.getMonth()];
     document.getElementById('date-subtitle').textContent = `dia ${dia} de ${mes}`;
   }
 
