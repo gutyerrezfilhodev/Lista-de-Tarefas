@@ -84,6 +84,74 @@
     font-size: 0.9rem;
   }
 
+  /* ALTERADO: redes ao lado do card lilás, alinhadas ao topo */
+  .header-extras {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: nowrap;
+  }
+
+  /* ALTERADO: redes cadastradas uma embaixo da outra */
+  .social-tracker {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .social-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--social-color);
+    border-radius: 10px;
+    padding: 8px 12px;
+    white-space: nowrap;
+  }
+
+  .social-chip-name {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .social-chip-hint {
+    font-size: 0.68rem;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .social-dots {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .social-dot {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 2px solid var(--social-color-dim);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  }
+
+  .social-dot:hover {
+    transform: scale(1.2);
+  }
+
+  .social-dot.filled {
+    background: var(--pri-green);
+    border-color: var(--pri-green);
+  }
+
   .social-card-btn {
     display: flex;
     align-items: center;
@@ -143,12 +211,18 @@
     letter-spacing: normal;
   }
 
+  .social-modal-subtitle {
+    margin: -10px 0 14px;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
   .social-add-form {
     margin: 0 0 16px;
   }
 
   .social-add-form input[type="number"] {
-    max-width: 90px;
+    max-width: 100px;
     flex: none;
   }
 
@@ -163,8 +237,10 @@
     overflow-y: auto;
   }
 
+  /* ALTERADO: itens em linha (retangulares), sem herdar column/grab do li */
   .social-item {
     display: flex;
+    flex-direction: row;
     align-items: center;
     gap: 8px;
     background: var(--bg);
@@ -172,6 +248,7 @@
     border-left: 4px solid var(--social-color);
     border-radius: 10px;
     padding: 10px 12px;
+    cursor: default;
     animation: appear 0.18s ease;
   }
 
@@ -336,13 +413,11 @@
     transition: border-color 0.15s ease, background-color 0.15s ease;
   }
 
-  /* Indicador visual de quando uma lista é alvo de soltar */
   .board-box.drag-over {
     border-color: var(--accent);
     background-color: rgba(110, 231, 183, 0.03);
   }
 
-  /* Indicadores de reordenação ao arrastar uma lista inteira */
   .board-box.dragging {
     opacity: 0.4;
     transform: scale(0.98);
@@ -883,6 +958,40 @@
     color: var(--ink);
   }
 
+  /* ---- Relatório Diário ---- */
+  .report-textarea {
+    display: block;
+    width: 100%;
+    min-height: 320px;
+    resize: vertical;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    border-radius: 10px;
+    padding: 14px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    outline: none;
+  }
+
+  .report-textarea:focus { border-color: var(--accent-dim); }
+
+  .report-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .report-copy-btn { padding: 10px 18px; }
+
+  .report-copy-status {
+    font-size: 0.78rem;
+    color: var(--accent);
+  }
+
   /* ---- Lista do dia ---- */
   .daily-title {
     font-size: 1.1rem;
@@ -1177,10 +1286,13 @@
 <div class="app">
   <div class="header-row">
     <h1>Lista de Tarefas - <span class="user-name-wrap" id="user-name-wrap"><span class="user-name-text" id="user-name-text"></span><button class="rename-btn user-name-edit-btn" id="user-name-edit-btn" title="Editar nome">&#9998;</button></span></h1>
-    <button type="button" class="social-card-btn" id="social-card-btn">
-      <span class="social-card-title">Controle de Redes Sociais</span>
-      <span class="social-card-count" id="social-card-count">0</span>
-    </button>
+    <div class="header-extras">
+      <div class="social-tracker" id="social-tracker"></div>
+      <button type="button" class="social-card-btn" id="social-card-btn">
+        <span class="social-card-title">Controle de Redes Sociais</span>
+        <span class="social-card-count" id="social-card-count">0</span>
+      </button>
+    </div>
   </div>
   <p class="subtitle" id="date-subtitle"></p>
 
@@ -1188,7 +1300,7 @@
     <button class="tab-btn active" data-tab="daily">Lista do dia</button>
     <button class="tab-btn" data-tab="tasks">Tarefas</button>
     <button class="tab-btn" data-tab="fixed">Tarefas Fixas</button>
-    <button class="tab-btn" data-tab="diary">Diário</button>
+    <button class="tab-btn" data-tab="diary">Relatório Diário</button>
   </div>
 
   <div class="tab-panel active" id="tab-daily">
@@ -1228,15 +1340,12 @@
   </div>
 
   <div class="tab-panel" id="tab-diary">
-    <div class="diary-column">
-      <div class="diary-panel">
-        <h2>Diário de horários <span class="count" id="diary-count">0</span></h2>
-        <div class="hour-timeline" id="hour-timeline"></div>
-      </div>
-
-      <div class="diary-panel">
-        <h2>Relatório diário</h2>
-        <div id="report-content"></div>
+    <div class="diary-panel">
+      <h2>Relatório Diário <span class="count" id="report-count">0</span></h2>
+      <textarea class="report-textarea" id="report-textarea" readonly spellcheck="false" placeholder="Nenhuma tarefa cumprida na Lista do dia ainda."></textarea>
+      <div class="report-actions">
+        <span class="report-copy-status" id="report-copy-status"></span>
+        <button type="button" class="add-btn report-copy-btn" id="report-copy-btn">Copiar relatório</button>
       </div>
     </div>
   </div>
@@ -1281,9 +1390,10 @@
       <h2 class="social-modal-title">Controle de Redes Sociais</h2>
       <button class="delete-btn" id="social-modal-close" title="Fechar">&times;</button>
     </div>
+    <p class="social-modal-subtitle">Cadastre a rede e a meta diária de usos. O controle do dia (bolinhas) aparece no topo da página.</p>
     <div class="mini-task-form social-add-form">
       <input type="text" id="social-name-input" placeholder="Rede social (ex: Instagram)..." autocomplete="off">
-      <input type="number" id="social-usage-input" placeholder="Usos/dia" min="0" autocomplete="off">
+      <input type="number" id="social-usage-input" placeholder="Meta/dia" min="0" autocomplete="off">
       <button type="button" class="add-btn" id="social-add-btn">Adicionar</button>
     </div>
     <ul class="social-list" id="social-list"></ul>
@@ -1320,6 +1430,8 @@
   let userName = 'Gutyerrez Filho';
   let socialNetworks = [];
   let nextSocialId = 1;
+  // Marcações diárias de uso de cada rede social: { 'AAAA-MM-DD': { [socialId]: usosMarcadosHoje } }
+  let socialUsageByDay = {};
 
   // Controle de estado para a API de Drag and Drop
   let draggedTaskId = null;
@@ -1345,7 +1457,7 @@
 
   function saveToStorage() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ boards, nextBoardId, fixedTasks, nextFixedId, departments, nextDepartmentId, dailySchedule, nextDailyId, userName, socialNetworks, nextSocialId }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ boards, nextBoardId, fixedTasks, nextFixedId, departments, nextDepartmentId, dailySchedule, nextDailyId, userName, socialNetworks, nextSocialId, socialUsageByDay }));
     } catch (err) {
       console.error('Não foi possível salvar os dados:', err);
     }
@@ -1374,6 +1486,7 @@
         userName = 'Gutyerrez Filho';
         socialNetworks = [];
         nextSocialId = 1;
+        socialUsageByDay = {};
         return;
       }
       
@@ -1446,6 +1559,8 @@
       nextSocialId = typeof data.nextSocialId === 'number'
         ? data.nextSocialId
         : (socialNetworks.length > 0 ? Math.max(0, ...socialNetworks.map(s => s.id)) + 1 : 1);
+
+      socialUsageByDay = (data.socialUsageByDay && typeof data.socialUsageByDay === 'object') ? data.socialUsageByDay : {};
     } catch (err) {
       console.error('Não foi possível carregar as listas salvas:', err);
       boards = [{ id: 1, name: 'Principal', tasks: [], doneTasks: [], nextId: 1, departmentId: null }];
@@ -1460,13 +1575,15 @@
       userName = 'Gutyerrez Filho';
       socialNetworks = [];
       nextSocialId = 1;
+      socialUsageByDay = {};
     }
   }
 
   const boardsColumn = document.getElementById('boards-column');
-  const hourTimeline = document.getElementById('hour-timeline');
-  const diaryCount = document.getElementById('diary-count');
-  const reportContent = document.getElementById('report-content');
+  const reportTextarea = document.getElementById('report-textarea');
+  const reportCount = document.getElementById('report-count');
+  const reportCopyBtn = document.getElementById('report-copy-btn');
+  const reportCopyStatus = document.getElementById('report-copy-status');
 
   const fixedListEl = document.getElementById('fixed-list');
   const fixedCountEl = document.getElementById('fixed-count');
@@ -1529,6 +1646,7 @@
   const socialAddBtn = document.getElementById('social-add-btn');
   const socialListEl = document.getElementById('social-list');
   const socialCardCountEl = document.getElementById('social-card-count');
+  const socialTrackerEl = document.getElementById('social-tracker');
 
   function openSocialModal() {
     renderSocial();
@@ -1608,6 +1726,7 @@
 
     if (socialNetworks.length === 0) {
       socialListEl.innerHTML = '<li style="all:unset; cursor:default;"><div class="empty-msg" style="width:100%">Nenhuma rede social cadastrada.</div></li>';
+      renderSocialTracker();
       return;
     }
 
@@ -1635,7 +1754,7 @@
       li.innerHTML = `
         <span class="social-name"></span>
         <input type="number" class="social-usage-input-inline" min="0" value="${item.usage}">
-        <span class="social-usage-label">usos/dia</span>
+        <span class="social-usage-label">meta/dia</span>
         <button class="edit-btn" title="Editar">&#9998;</button>
         <button class="delete-btn" title="Excluir">&times;</button>
       `;
@@ -1644,6 +1763,75 @@
       li.querySelector('.edit-btn').addEventListener('click', () => startSocialEdit(item.id));
       li.querySelector('.delete-btn').addEventListener('click', () => deleteSocialNetwork(item.id));
       socialListEl.appendChild(li);
+    });
+
+    renderSocialTracker();
+  }
+
+  // Marcação diária (bolinhas) de uso de redes sociais, mostrada no topo da página
+  function getTodaySocialUsage() {
+    const key = getTodayKey();
+    if (!socialUsageByDay[key]) socialUsageByDay[key] = {};
+    return socialUsageByDay[key];
+  }
+
+  function getSocialUsedCount(id) {
+    const key = getTodayKey();
+    const day = socialUsageByDay[key];
+    return (day && typeof day[id] === 'number') ? day[id] : 0;
+  }
+
+  function setSocialUsedCount(id, count) {
+    const net = socialNetworks.find(s => s.id === id);
+    const max = net ? Math.max(0, net.usage || 0) : 0;
+    const clamped = Math.max(0, Math.min(count, max));
+    const day = getTodaySocialUsage();
+    day[id] = clamped;
+    saveToStorage();
+    renderSocialTracker();
+  }
+
+  function toggleSocialDot(id, index) {
+    const current = getSocialUsedCount(id);
+    setSocialUsedCount(id, current > index ? index : index + 1);
+  }
+
+  function renderSocialTracker() {
+    if (!socialTrackerEl) return;
+    socialTrackerEl.innerHTML = '';
+
+    socialNetworks.forEach(net => {
+      const target = Math.max(0, net.usage || 0);
+      const used = getSocialUsedCount(net.id);
+
+      const chip = document.createElement('div');
+      chip.className = 'social-chip';
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'social-chip-name';
+      nameEl.textContent = net.name;
+      chip.appendChild(nameEl);
+
+      if (target > 0) {
+        const dots = document.createElement('div');
+        dots.className = 'social-dots';
+        for (let i = 0; i < target; i++) {
+          const dot = document.createElement('button');
+          dot.type = 'button';
+          dot.className = 'social-dot' + (i < used ? ' filled' : '');
+          dot.title = `${net.name}: ${i + 1}/${target} hoje`;
+          dot.addEventListener('click', () => toggleSocialDot(net.id, i));
+          dots.appendChild(dot);
+        }
+        chip.appendChild(dots);
+      } else {
+        const hint = document.createElement('span');
+        hint.className = 'social-chip-hint';
+        hint.textContent = 'sem meta';
+        chip.appendChild(hint);
+      }
+
+      socialTrackerEl.appendChild(chip);
     });
   }
 
@@ -2583,6 +2771,8 @@
       const tasksArr = schedule[h] || [];
       dailyHourListEl.appendChild(buildDailyHourRow(h, tasksArr));
     }
+
+    renderReport();
   }
 
   // ---- Renderização ----
@@ -2590,7 +2780,6 @@
     renderDailyList();
     renderBoardsColumn();
     renderFixed();
-    renderDiary();
     renderSocial();
   }
 
@@ -2598,7 +2787,9 @@
     boardsColumn.innerHTML = '';
 
     const ungrouped = boards.filter(b => !b.departmentId);
-    boardsColumn.appendChild(buildDepartmentSection(null, ungrouped));
+    if (ungrouped.length > 0 || departments.length === 0) {
+      boardsColumn.appendChild(buildDepartmentSection(null, ungrouped));
+    }
 
     departments.forEach(dept => {
       const deptBoards = boards.filter(b => b.departmentId === dept.id);
@@ -2745,7 +2936,6 @@
       e.preventDefault();
       e.stopPropagation();
       if (draggedBoardId !== null) {
-        // Arrastando uma lista inteira: indica se vai inserir antes ou depois desta caixa
         if (draggedBoardId !== board.id) {
           const rect = box.getBoundingClientRect();
           const isTopHalf = (e.clientY - rect.top) < rect.height / 2;
@@ -2778,7 +2968,6 @@
         return;
       }
 
-      // Se soltar na área geral do box e não em um item específico, adiciona no final da lista
       if (draggedTaskId !== null && draggedSourceBoardId !== null) {
         if (!e.target.closest('li')) {
           moveTaskToBoard(draggedSourceBoardId, board.id, draggedTaskId);
@@ -3272,121 +3461,47 @@
   fixedSelectAllBtn.addEventListener('click', toggleSelectAllFixed);
   fixedApplyBtn.addEventListener('click', applySelectedFixedTasks);
 
-  // ---- Diário ----
-  function getAllDoneTasks() {
-    let all = [];
-    boards.forEach(board => {
-      board.doneTasks.forEach(t => all.push({ ...t, boardId: board.id, boardName: board.name }));
-    });
-    return all;
-  }
-
-  function formatHourLabel(h) {
-    return `${h}h`;
-  }
-
-  function formatTime(iso) {
-    const d = new Date(iso);
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    return `${hh}:${mm}`;
-  }
-
-  function renderDiary() {
-    const all = getAllDoneTasks();
-    diaryCount.textContent = all.length;
-    renderHourTimeline(all);
-    renderDailyReport(all);
-  }
-
-  function renderHourTimeline(all) {
-    hourTimeline.innerHTML = '';
-
-    const semHorario = all.filter(t => !t.completedAt);
-    if (semHorario.length > 0) {
-      hourTimeline.appendChild(buildHourRow('Sem horário', semHorario));
-    }
-
+  // ---- Relatório Diário ----
+  // Uma linha por tarefa cumprida na Lista do dia: "Horário - Tarefa"
+  function buildReportText() {
+    const schedule = dailySchedule[getTodayKey()] || {};
+    const lines = [];
     for (let h = 0; h < 24; h++) {
-      const tasksAtHour = all.filter(t => t.completedAt && new Date(t.completedAt).getHours() === h);
-      hourTimeline.appendChild(buildHourRow(formatHourLabel(h), tasksAtHour));
-    }
-  }
-
-  function buildHourRow(label, tasksAtHour) {
-    const row = document.createElement('div');
-    row.className = 'hour-row' + (tasksAtHour.length > 0 ? ' has-tasks' : '');
-
-    const labelEl = document.createElement('span');
-    labelEl.className = 'hour-label';
-    labelEl.textContent = label;
-    row.appendChild(labelEl);
-
-    const tasksWrap = document.createElement('div');
-    tasksWrap.className = 'hour-tasks';
-
-    if (tasksAtHour.length === 0) {
-      const empty = document.createElement('span');
-      empty.className = 'hour-empty';
-      empty.textContent = '—';
-      tasksWrap.appendChild(empty);
-    } else {
-      tasksAtHour.forEach(task => {
-        const item = document.createElement('div');
-        item.className = 'hour-task';
-        item.innerHTML = `
-          ${task.completedAt ? `<span class="hour-time">${formatTime(task.completedAt)}</span>` : ''}
-          <span class="task-text"></span>
-          <span class="hour-task-board"></span>
-          <button class="delete-btn" title="Excluir">&times;</button>
-        `;
-        item.querySelector('.task-text').textContent = task.text;
-        item.querySelector('.hour-task-board').textContent = task.boardName;
-        item.querySelector('.delete-btn').addEventListener('click', () => deleteTask(task.boardId, task.id, true));
-        tasksWrap.appendChild(item);
+      (schedule[h] || []).forEach(task => {
+        if (task.done) lines.push(`${h}h - ${task.text}`);
       });
     }
-
-    row.appendChild(tasksWrap);
-    return row;
+    return lines;
   }
 
-  function renderDailyReport(all) {
-    reportContent.innerHTML = '';
+  function renderReport() {
+    const lines = buildReportText();
+    reportTextarea.value = lines.join('\n');
+    reportCount.textContent = lines.length;
+  }
 
-    if (all.length === 0) {
-      reportContent.innerHTML = '<div class="empty-msg">Nenhuma tarefa concluída ainda.</div>';
-      return;
+  function copyReport() {
+    const text = reportTextarea.value;
+    function done(ok) {
+      reportCopyStatus.textContent = ok ? 'Copiado!' : 'Não foi possível copiar. Selecione o texto e use Ctrl+C.';
+      setTimeout(() => { reportCopyStatus.textContent = ''; }, 2500);
     }
-
-    const total = document.createElement('p');
-    total.className = 'report-total';
-    total.innerHTML = `Total de <strong>${all.length}</strong> tarefa${all.length === 1 ? '' : 's'} concluída${all.length === 1 ? '' : 's'} em todas as listas.`;
-    reportContent.appendChild(total);
-
-    const semHorario = all.filter(t => !t.completedAt);
-    if (semHorario.length > 0) {
-      reportContent.appendChild(buildReportBlock('Sem horário', semHorario));
+    function fallback() {
+      reportTextarea.focus();
+      reportTextarea.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+      done(ok);
     }
-
-    for (let h = 0; h < 24; h++) {
-      const tasksAtHour = all.filter(t => t.completedAt && new Date(t.completedAt).getHours() === h);
-      if (tasksAtHour.length > 0) {
-        reportContent.appendChild(buildReportBlock(formatHourLabel(h), tasksAtHour));
-      }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => done(true)).catch(fallback);
+    } else {
+      fallback();
     }
   }
 
-  function buildReportBlock(label, tasksAtHour) {
-    const block = document.createElement('div');
-    block.className = 'report-hour-block';
-    const names = tasksAtHour
-      .map(t => t.completedAt ? `${t.text} (${formatTime(t.completedAt)} — ${t.boardName})` : `${t.text} (${t.boardName})`)
-      .join(', ');
-    block.innerHTML = `<span class="report-hour-label">${label}</span><span class="report-tasks"></span>`;
-    block.querySelector('.report-tasks').textContent = names;
-    return block;
-  }
+  reportCopyBtn.addEventListener('click', copyReport);
+  reportTextarea.addEventListener('focus', () => reportTextarea.select());
 
   function setDateSubtitle() {
     const hoje = new Date();
