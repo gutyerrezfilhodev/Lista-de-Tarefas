@@ -984,29 +984,21 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-  }
-
-  .fixed-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--bg);
-    border: 1px solid var(--line);
     border-radius: 10px;
-    padding: 10px 12px;
-    animation: appear 0.18s ease;
+    transition: background-color 0.15s ease;
   }
 
-  .fixed-item input[type="checkbox"] {
+  .fixed-list.drag-over {
+    background-color: rgba(110, 231, 183, 0.06);
+    outline: 2px dashed var(--accent-dim);
+  }
+
+  .fixed-select-checkbox {
     width: 16px;
     height: 16px;
     accent-color: var(--accent);
     cursor: pointer;
     flex-shrink: 0;
-  }
-
-  .fixed-item .task-text {
-    flex: 1;
   }
 
   .fixed-actions-bar {
@@ -1417,6 +1409,10 @@
       });
 
       fixedTasks = Array.isArray(data.fixedTasks) ? data.fixedTasks : [];
+      fixedTasks.forEach(t => {
+        if (t.priority === undefined) t.priority = null;
+        t.editing = false;
+      });
       nextFixedId = typeof data.nextFixedId === 'number'
         ? data.nextFixedId
         : (fixedTasks.length > 0 ? Math.max(0, ...fixedTasks.map(t => t.id)) + 1 : 1);
@@ -1851,6 +1847,44 @@
     return html;
   }
 
+  // Agrupa as listas na mesma ordem visual da aba Tarefas: "Sem departamento"
+  // primeiro, depois cada departamento na sua ordem, e as listas na ordem em
+  // que aparecem dentro de cada grupo.
+  function getBoardsGroupedByDepartment() {
+    const groups = [];
+    groups.push({ label: 'Sem departamento', boards: boards.filter(b => !b.departmentId) });
+    departments.forEach(dept => {
+      groups.push({ label: dept.name, boards: boards.filter(b => b.departmentId === dept.id) });
+    });
+    return groups;
+  }
+
+  // Monta <option>s (com <optgroup> por departamento quando fizer sentido)
+  // para selects de "mover para outra lista". excludeBoardId tira a própria
+  // lista das opções; placeholder é o texto do <option> desabilitado inicial
+  // (passe null para não ter placeholder).
+  function buildBoardSelectOptionsHTML(placeholder, excludeBoardId) {
+    const groups = getBoardsGroupedByDepartment()
+      .map(g => ({
+        label: g.label,
+        boards: excludeBoardId ? g.boards.filter(b => b.id !== excludeBoardId) : g.boards
+      }))
+      .filter(g => g.boards.length > 0);
+
+    let html = placeholder ? `<option value="" disabled selected>${escAttr(placeholder)}</option>` : '';
+    const useGroups = groups.length > 1;
+
+    groups.forEach(g => {
+      if (useGroups) html += `<optgroup label="${escAttr(g.label)}">`;
+      g.boards.forEach(b => {
+        html += `<option value="${b.id}">${escAttr(b.name)}</option>`;
+      });
+      if (useGroups) html += `</optgroup>`;
+    });
+
+    return html;
+  }
+
   // ---- Operações com Tarefas ----
   function addTask(boardId, text) {
     const board = getBoard(boardId);
@@ -2017,10 +2051,12 @@
   }
 
   // ---- Operações com Tarefas Fixas ----
+  let draggedFixedId = null;
+
   function addFixedTask(text) {
     const trimmed = text.trim();
     if (!trimmed) return;
-    fixedTasks.push({ id: nextFixedId++, text: trimmed });
+    fixedTasks.push({ id: nextFixedId++, text: trimmed, priority: null, editing: false });
     saveToStorage();
     renderFixed();
   }
@@ -2059,13 +2095,76 @@
 
     fixedTasks.forEach(ft => {
       if (selectedFixedIds.has(ft.id)) {
-        board.tasks.push({ id: board.nextId++, text: ft.text, priority: null, editing: false });
+        board.tasks.push({ id: board.nextId++, text: ft.text, priority: ft.priority || null, editing: false });
       }
     });
 
     selectedFixedIds.clear();
     saveToStorage();
     renderAll();
+  }
+
+  function sortFixedTasks() {
+    fixedTasks.sort((a, b) => PRIORITY_ORDER.indexOf(a.priority || null) - PRIORITY_ORDER.indexOf(b.priority || null));
+  }
+
+  function setFixedPriority(id, value) {
+    const ft = fixedTasks.find(t => t.id === id);
+    if (!ft) return;
+    ft.priority = value || null;
+    sortFixedTasks();
+    saveToStorage();
+    renderFixed();
+  }
+
+  function moveFixedTask(id, direction) {
+    const idx = fixedTasks.findIndex(t => t.id === id);
+    if (idx === -1) return;
+    const current = fixedTasks[idx].priority || null;
+
+    if (direction === 'up') {
+      const prevIdx = idx - 1;
+      if (prevIdx >= 0 && (fixedTasks[prevIdx].priority || null) === current) {
+        [fixedTasks[prevIdx], fixedTasks[idx]] = [fixedTasks[idx], fixedTasks[prevIdx]];
+      }
+    } else {
+      const nextIdx = idx + 1;
+      if (nextIdx < fixedTasks.length && (fixedTasks[nextIdx].priority || null) === current) {
+        [fixedTasks[idx], fixedTasks[nextIdx]] = [fixedTasks[nextIdx], fixedTasks[idx]];
+      }
+    }
+    saveToStorage();
+    renderFixed();
+  }
+
+  function reorderFixedTask(draggedId, targetIndex) {
+    const idx = fixedTasks.findIndex(t => t.id === draggedId);
+    if (idx === -1) return;
+    const [item] = fixedTasks.splice(idx, 1);
+    if (targetIndex !== null && targetIndex >= 0) {
+      fixedTasks.splice(targetIndex, 0, item);
+    } else {
+      fixedTasks.push(item);
+    }
+    saveToStorage();
+    renderFixed();
+  }
+
+  function startFixedEdit(id) {
+    const ft = fixedTasks.find(t => t.id === id);
+    if (!ft) return;
+    ft.editing = true;
+    renderFixed();
+  }
+
+  function saveFixedEdit(id, newText) {
+    const ft = fixedTasks.find(t => t.id === id);
+    if (!ft) return;
+    const trimmed = newText.trim();
+    if (trimmed) ft.text = trimmed;
+    ft.editing = false;
+    saveToStorage();
+    renderFixed();
   }
 
   // ---- Operações da Lista do dia ----
@@ -2160,11 +2259,7 @@
   }
 
   function buildBoardMoveOptionsHTML() {
-    let html = '<option value="" disabled selected>Mover p/ lista...</option>';
-    boards.forEach(b => {
-      html += `<option value="${b.id}">${escAttr(b.name)}</option>`;
-    });
-    return html;
+    return buildBoardSelectOptionsHTML('Mover p/ lista...', null);
   }
 
   function moveDailyTaskToBoard(hour, taskId, targetBoardId) {
@@ -2503,9 +2598,7 @@
     boardsColumn.innerHTML = '';
 
     const ungrouped = boards.filter(b => !b.departmentId);
-    if (ungrouped.length > 0 || departments.length === 0) {
-      boardsColumn.appendChild(buildDepartmentSection(null, ungrouped));
-    }
+    boardsColumn.appendChild(buildDepartmentSection(null, ungrouped));
 
     departments.forEach(dept => {
       const deptBoards = boards.filter(b => b.departmentId === dept.id);
@@ -2840,11 +2933,8 @@
       return;
     }
 
-    const boardOptions = boards
-      .filter(b => b.id !== board.id)
-      .map(b => `<option value="${b.id}">${b.name.replace(/"/g, '&quot;')}</option>`)
-      .join('');
-    const hasOtherBoards = boardOptions.length > 0;
+    const boardOptions = buildBoardSelectOptionsHTML('Mover p/...', board.id);
+    const hasOtherBoards = boards.filter(b => b.id !== board.id).length > 0;
 
     board.tasks.forEach((task, i) => {
       const li = document.createElement('li');
@@ -2937,7 +3027,6 @@
           <div class="task-top-right">
             ${hasOtherBoards ? `
               <select class="move-board-select" title="Mover para outra lista">
-                <option value="" disabled selected>Mover p/...</option>
                 ${boardOptions}
               </select>
             ` : ''}
@@ -2995,12 +3084,124 @@
   }
 
   // ---- Renderização das Tarefas Fixas ----
+  function buildFixedItem(ft, i) {
+    const li = document.createElement('li');
+    li.dataset.fixedId = ft.id;
+
+    const priority = ft.priority || null;
+    if (priority) li.classList.add('pri-' + priority);
+
+    const isFirstInGroup = i === 0 || (fixedTasks[i - 1].priority || null) !== priority;
+    const isLastInGroup = i === fixedTasks.length - 1 || (fixedTasks[i + 1].priority || null) !== priority;
+
+    if (ft.editing) {
+      li.draggable = false;
+      li.innerHTML = `
+        <div class="task-top-row">
+          <div class="task-top-left">
+            <span class="index">${i + 1}</span>
+          </div>
+          <div class="task-top-right">
+            <button class="edit-btn" title="Salvar">&#10003;</button>
+          </div>
+        </div>
+        <input type="text" class="edit-input" value="${escAttr(ft.text)}">
+      `;
+      const editInput = li.querySelector('.edit-input');
+      li.querySelector('.edit-btn').addEventListener('click', () => saveFixedEdit(ft.id, editInput.value));
+      editInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') saveFixedEdit(ft.id, editInput.value);
+        if (e.key === 'Escape') { ft.editing = false; renderFixed(); }
+      });
+      return li;
+    }
+
+    li.draggable = true;
+
+    li.addEventListener('dragstart', (e) => {
+      draggedFixedId = ft.id;
+      li.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(ft.id));
+    });
+
+    li.addEventListener('dragend', () => {
+      draggedFixedId = null;
+      li.classList.remove('dragging');
+      document.querySelectorAll('.drag-over-item').forEach(el => el.classList.remove('drag-over-item'));
+      fixedListEl.classList.remove('drag-over');
+    });
+
+    li.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (draggedFixedId !== null && draggedFixedId !== ft.id) {
+        li.classList.add('drag-over-item');
+      }
+    });
+
+    li.addEventListener('dragleave', () => {
+      li.classList.remove('drag-over-item');
+    });
+
+    li.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      li.classList.remove('drag-over-item');
+      if (draggedFixedId !== null) {
+        reorderFixedTask(draggedFixedId, i);
+      }
+    });
+
+    li.innerHTML = `
+      <div class="task-top-row">
+        <div class="task-top-left">
+          <input type="checkbox" class="fixed-select-checkbox" title="Selecionar para distribuição" ${selectedFixedIds.has(ft.id) ? 'checked' : ''}>
+          <span class="drag-handle" title="Arrastar tarefa fixa">&#9776;</span>
+          <span class="index">${i + 1}</span>
+          <div class="move-group">
+            <button class="move-btn fixed-move-up" title="Mover para cima" ${isFirstInGroup ? 'disabled' : ''}>&#9650;</button>
+            <button class="move-btn fixed-move-down" title="Mover para baixo" ${isLastInGroup ? 'disabled' : ''}>&#9660;</button>
+          </div>
+        </div>
+        <div class="task-top-right">
+          <select class="priority-select" title="Classificar prioridade">
+            <option value="">Sem cor</option>
+            <option value="red">Urgente</option>
+            <option value="yellow">Média</option>
+            <option value="blue">Baixa</option>
+            <option value="green">Adiável</option>
+          </select>
+          <button class="edit-btn" title="Editar">&#9998;</button>
+          <button class="delete-btn" title="Excluir">&times;</button>
+        </div>
+      </div>
+      <span class="task-text"></span>
+    `;
+    li.querySelector('.task-text').textContent = ft.text;
+
+    li.querySelector('.fixed-select-checkbox').addEventListener('click', (e) => e.stopPropagation());
+    li.querySelector('.fixed-select-checkbox').addEventListener('change', (e) => {
+      toggleFixedSelection(ft.id, e.target.checked);
+    });
+
+    const select = li.querySelector('.priority-select');
+    select.value = priority || '';
+    select.style.background = PRIORITY_COLORS[priority || null];
+    select.addEventListener('change', (e) => setFixedPriority(ft.id, e.target.value));
+
+    li.querySelector('.fixed-move-up').addEventListener('click', () => moveFixedTask(ft.id, 'up'));
+    li.querySelector('.fixed-move-down').addEventListener('click', () => moveFixedTask(ft.id, 'down'));
+    li.querySelector('.edit-btn').addEventListener('click', () => startFixedEdit(ft.id));
+    li.querySelector('.delete-btn').addEventListener('click', () => deleteFixedTask(ft.id));
+
+    return li;
+  }
+
   function renderFixed() {
     // Atualiza o seletor de listas de destino, preservando a seleção atual quando possível
     const previousApplyValue = fixedApplySelect.value;
-    fixedApplySelect.innerHTML = boards
-      .map(b => `<option value="${b.id}">${b.name.replace(/"/g, '&quot;')}</option>`)
-      .join('');
+    fixedApplySelect.innerHTML = buildBoardSelectOptionsHTML(null, null);
     if (boards.some(b => String(b.id) === previousApplyValue)) {
       fixedApplySelect.value = previousApplyValue;
     } else if (expandedBoardId && boards.some(b => b.id === expandedBoardId)) {
@@ -3012,26 +3213,39 @@
 
     if (fixedTasks.length === 0) {
       fixedListEl.innerHTML = '<li style="all:unset; cursor:default;"><div class="empty-msg" style="width:100%">Nenhuma tarefa fixa cadastrada.</div></li>';
-    } else {
-      fixedTasks.forEach(ft => {
-        const li = document.createElement('li');
-        li.className = 'fixed-item';
-        li.innerHTML = `
-          <input type="checkbox" ${selectedFixedIds.has(ft.id) ? 'checked' : ''}>
-          <span class="task-text"></span>
-          <button class="delete-btn" title="Excluir tarefa fixa">&times;</button>
-        `;
-        li.querySelector('.task-text').textContent = ft.text;
-        li.querySelector('input[type="checkbox"]').addEventListener('change', (e) => {
-          toggleFixedSelection(ft.id, e.target.checked);
-        });
-        li.querySelector('.delete-btn').addEventListener('click', () => deleteFixedTask(ft.id));
-        fixedListEl.appendChild(li);
-      });
+      updateFixedActionsBar();
+      return;
     }
+
+    fixedTasks.forEach((ft, i) => {
+      const li = buildFixedItem(ft, i);
+      fixedListEl.appendChild(li);
+      if (ft.editing) {
+        const editInput = li.querySelector('.edit-input');
+        if (editInput) {
+          editInput.focus();
+          editInput.select();
+        }
+      }
+    });
 
     updateFixedActionsBar();
   }
+
+  fixedListEl.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (draggedFixedId !== null) fixedListEl.classList.add('drag-over');
+  });
+  fixedListEl.addEventListener('dragleave', (e) => {
+    if (!fixedListEl.contains(e.relatedTarget)) fixedListEl.classList.remove('drag-over');
+  });
+  fixedListEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    fixedListEl.classList.remove('drag-over');
+    if (draggedFixedId !== null && !e.target.closest('li')) {
+      reorderFixedTask(draggedFixedId, null);
+    }
+  });
 
   function updateFixedActionsBar() {
     const selectedCount = selectedFixedIds.size;
