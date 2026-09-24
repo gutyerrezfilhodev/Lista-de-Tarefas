@@ -2530,11 +2530,13 @@
     if (!task.done) {
       showConfirm('Essa tarefa foi realmente concluída?', () => {
         task.done = true;
+        task.completedAt = new Date().toISOString();
         saveToStorage();
         renderDailyList();
       });
     } else {
       task.done = false;
+      delete task.completedAt;
       saveToStorage();
       renderDailyList();
     }
@@ -3462,16 +3464,32 @@
   fixedApplyBtn.addEventListener('click', applySelectedFixedTasks);
 
   // ---- Relatório Diário ----
-  // Uma linha por tarefa cumprida na Lista do dia: "Horário - Tarefa"
+  // Uma linha por tarefa cumprida na Lista do dia: "Horário real - Tarefa"
+  // O horário é o momento em que a tarefa foi concluída (fuso do aparelho), ex.: 1h13
+  function formatRealTime(iso) {
+    const d = new Date(iso);
+    return `${d.getHours()}h${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+
   function buildReportText() {
     const schedule = dailySchedule[getTodayKey()] || {};
-    const lines = [];
-    for (let h = 0; h < 24; h++) {
-      (schedule[h] || []).forEach(task => {
-        if (task.done) lines.push(`${h}h - ${task.text}`);
+    const done = [];
+    Object.keys(schedule).forEach(hourKey => {
+      (schedule[hourKey] || []).forEach(task => {
+        if (task.done) done.push(task);
       });
-    }
-    return lines;
+    });
+
+    // Ordem cronológica pelo horário real; tarefas sem horário registrado vão primeiro
+    done.sort((a, b) => {
+      const ta = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+      const tb = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+      return ta - tb;
+    });
+
+    return done.map(task =>
+      `${task.completedAt ? formatRealTime(task.completedAt) : 'Sem horário'} - ${task.text}`
+    );
   }
 
   function renderReport() {
