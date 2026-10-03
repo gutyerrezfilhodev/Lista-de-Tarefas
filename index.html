@@ -19,8 +19,6 @@
     --pri-blue: #4f9fe8;
     --pri-green: #5fd88a;
     --pri-none: #4a4e58;
-    --social-color: #b98bf0;
-    --social-color-dim: #9457d6;
     box-sizing: border-box;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -82,199 +80,6 @@
 
   .user-name-edit-btn {
     font-size: 0.9rem;
-  }
-
-  /* ALTERADO: redes ao lado do card lilás, alinhadas ao topo */
-  .header-extras {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    flex-wrap: nowrap;
-  }
-
-  /* ALTERADO: redes cadastradas uma embaixo da outra */
-  .social-tracker {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-
-  .social-chip {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-left: 3px solid var(--social-color);
-    border-radius: 10px;
-    padding: 8px 12px;
-    white-space: nowrap;
-  }
-
-  .social-chip-name {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: var(--ink);
-  }
-
-  .social-chip-hint {
-    font-size: 0.68rem;
-    color: var(--muted);
-    font-style: italic;
-  }
-
-  .social-dots {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-
-  .social-dot {
-    width: 13px;
-    height: 13px;
-    border-radius: 50%;
-    border: 2px solid var(--social-color-dim);
-    background: transparent;
-    cursor: pointer;
-    padding: 0;
-    flex-shrink: 0;
-    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
-  }
-
-  .social-dot:hover {
-    transform: scale(1.2);
-  }
-
-  .social-dot.filled {
-    background: var(--pri-green);
-    border-color: var(--pri-green);
-  }
-
-  .social-card-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: color-mix(in srgb, var(--social-color) 16%, var(--panel));
-    border: 2px solid var(--social-color);
-    border-radius: 12px;
-    padding: 10px 16px;
-    cursor: pointer;
-    color: var(--ink);
-    font-family: inherit;
-    transition: filter 0.15s ease, transform 0.1s ease;
-    flex-shrink: 0;
-  }
-
-  .social-card-btn:hover { filter: brightness(1.1); }
-  .social-card-btn:active { transform: scale(0.98); }
-
-  .social-card-title {
-    color: var(--social-color);
-    font-weight: 700;
-    font-size: 0.85rem;
-  }
-
-  .social-card-count {
-    background: var(--social-color);
-    color: #1b1d22;
-    border-radius: 999px;
-    padding: 2px 8px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    min-width: 20px;
-    text-align: center;
-  }
-
-  .social-modal-box {
-    max-width: 460px;
-    width: 100%;
-    text-align: left;
-    border: 2px solid var(--social-color);
-  }
-
-  .social-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-
-  .social-modal-title {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--social-color);
-    text-transform: none;
-    letter-spacing: normal;
-  }
-
-  .social-modal-subtitle {
-    margin: -10px 0 14px;
-    font-size: 0.78rem;
-    color: var(--muted);
-  }
-
-  .social-add-form {
-    margin: 0 0 16px;
-  }
-
-  .social-add-form input[type="number"] {
-    max-width: 100px;
-    flex: none;
-  }
-
-  .social-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-height: 340px;
-    overflow-y: auto;
-  }
-
-  /* ALTERADO: itens em linha (retangulares), sem herdar column/grab do li */
-  .social-item {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-    background: var(--bg);
-    border: 1px solid var(--line);
-    border-left: 4px solid var(--social-color);
-    border-radius: 10px;
-    padding: 10px 12px;
-    cursor: default;
-    animation: appear 0.18s ease;
-  }
-
-  .social-item .social-name {
-    flex: 1;
-    font-size: 0.9rem;
-    word-break: break-word;
-  }
-
-  .social-usage-input-inline {
-    width: 56px;
-    flex: none;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    color: var(--ink);
-    border-radius: 6px;
-    padding: 4px 6px;
-    font-size: 0.8rem;
-    outline: none;
-    text-align: center;
-  }
-
-  .social-usage-label {
-    font-size: 0.7rem;
-    color: var(--muted);
-    white-space: nowrap;
   }
 
   .subtitle {
@@ -842,12 +647,6 @@
   }
 
   /* ---- Diário ---- */
-  .diary-column {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-
   .diary-panel {
     background: var(--panel);
     border: 1px solid var(--line);
@@ -863,15 +662,6 @@
     padding-right: 4px;
   }
 
-  .hour-row {
-    display: flex;
-    gap: 12px;
-    padding: 8px 4px;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .hour-row:last-child { border-bottom: none; }
-
   .hour-label {
     min-width: 40px;
     flex-shrink: 0;
@@ -879,83 +669,6 @@
     font-weight: 700;
     color: var(--muted);
     padding-top: 2px;
-  }
-
-  .hour-row.has-tasks .hour-label {
-    color: var(--accent);
-  }
-
-  .hour-tasks {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 0;
-  }
-
-  .hour-empty {
-    color: var(--muted);
-    font-size: 0.8rem;
-    opacity: 0.5;
-  }
-
-  .hour-task {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 6px 10px;
-  }
-
-  .hour-task .hour-time {
-    font-size: 0.7rem;
-    color: var(--muted);
-    flex-shrink: 0;
-  }
-
-  .hour-task .task-text {
-    font-size: 0.85rem;
-    text-decoration: line-through;
-    color: var(--muted);
-    flex: 1;
-  }
-
-  .hour-task-board {
-    font-size: 0.65rem;
-    color: var(--accent);
-    background: rgba(110, 231, 183, 0.1);
-    border-radius: 999px;
-    padding: 2px 8px;
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-
-  .report-total {
-    font-size: 0.85rem;
-    color: var(--ink);
-    margin: 0 0 14px;
-  }
-
-  .report-total strong { color: var(--accent); }
-
-  .report-hour-block {
-    padding: 8px 0;
-    border-bottom: 1px solid var(--line);
-    font-size: 0.85rem;
-  }
-
-  .report-hour-block:last-child { border-bottom: none; }
-
-  .report-hour-block .report-hour-label {
-    font-weight: 700;
-    color: var(--accent);
-    margin-right: 6px;
-  }
-
-  .report-hour-block .report-tasks {
-    color: var(--ink);
   }
 
   /* ---- Relatório Diário ---- */
@@ -1286,13 +999,6 @@
 <div class="app">
   <div class="header-row">
     <h1>Lista de Tarefas - <span class="user-name-wrap" id="user-name-wrap"><span class="user-name-text" id="user-name-text"></span><button class="rename-btn user-name-edit-btn" id="user-name-edit-btn" title="Editar nome">&#9998;</button></span></h1>
-    <div class="header-extras">
-      <div class="social-tracker" id="social-tracker"></div>
-      <button type="button" class="social-card-btn" id="social-card-btn">
-        <span class="social-card-title">Controle de Redes Sociais</span>
-        <span class="social-card-count" id="social-card-count">0</span>
-      </button>
-    </div>
   </div>
   <p class="subtitle" id="date-subtitle"></p>
 
@@ -1384,22 +1090,6 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="social-modal">
-  <div class="modal-box social-modal-box">
-    <div class="social-modal-header">
-      <h2 class="social-modal-title">Controle de Redes Sociais</h2>
-      <button class="delete-btn" id="social-modal-close" title="Fechar">&times;</button>
-    </div>
-    <p class="social-modal-subtitle">Cadastre a rede e a meta diária de usos. O controle do dia (bolinhas) aparece no topo da página.</p>
-    <div class="mini-task-form social-add-form">
-      <input type="text" id="social-name-input" placeholder="Rede social (ex: Instagram)..." autocomplete="off">
-      <input type="number" id="social-usage-input" placeholder="Meta/dia" min="0" autocomplete="off">
-      <button type="button" class="add-btn" id="social-add-btn">Adicionar</button>
-    </div>
-    <ul class="social-list" id="social-list"></ul>
-  </div>
-</div>
-
 <script>
   const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 
@@ -1426,12 +1116,8 @@
   let dailySchedule = {};
   let nextDailyId = 1;
 
-  // ---- Nome do usuário (editável) e Controle de Redes Sociais ----
+  // ---- Nome do usuário (editável) ----
   let userName = 'Gutyerrez Filho';
-  let socialNetworks = [];
-  let nextSocialId = 1;
-  // Marcações diárias de uso de cada rede social: { 'AAAA-MM-DD': { [socialId]: usosMarcadosHoje } }
-  let socialUsageByDay = {};
 
   // Controle de estado para a API de Drag and Drop
   let draggedTaskId = null;
@@ -1457,39 +1143,33 @@
 
   function saveToStorage() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ boards, nextBoardId, fixedTasks, nextFixedId, departments, nextDepartmentId, dailySchedule, nextDailyId, userName, socialNetworks, nextSocialId, socialUsageByDay }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ boards, nextBoardId, fixedTasks, nextFixedId, departments, nextDepartmentId, dailySchedule, nextDailyId, userName }));
     } catch (err) {
       console.error('Não foi possível salvar os dados:', err);
     }
+  }
+
+  function resetDefaults() {
+    boards = [{ id: 1, name: 'Principal', tasks: [], doneTasks: [], nextId: 1, departmentId: null }];
+    nextBoardId = 2;
+    expandedBoardId = 1;
+    fixedTasks = [];
+    nextFixedId = 1;
+    departments = [];
+    nextDepartmentId = 1;
+    dailySchedule = {};
+    nextDailyId = 1;
+    userName = 'Gutyerrez Filho';
   }
 
   function loadFromStorage() {
     try {
       const rawData = localStorage.getItem(STORAGE_KEY);
       if (!rawData) {
-        boards = [{
-          id: 1,
-          name: 'Principal',
-          tasks: [],
-          doneTasks: [],
-          nextId: 1,
-          departmentId: null
-        }];
-        nextBoardId = 2;
-        expandedBoardId = 1;
-        fixedTasks = [];
-        nextFixedId = 1;
-        departments = [];
-        nextDepartmentId = 1;
-        dailySchedule = {};
-        nextDailyId = 1;
-        userName = 'Gutyerrez Filho';
-        socialNetworks = [];
-        nextSocialId = 1;
-        socialUsageByDay = {};
+        resetDefaults();
         return;
       }
-      
+
       const data = JSON.parse(rawData);
 
       if (Array.isArray(data.boards) && data.boards.length > 0) {
@@ -1550,32 +1230,9 @@
       });
 
       userName = typeof data.userName === 'string' && data.userName.trim() ? data.userName : 'Gutyerrez Filho';
-
-      socialNetworks = Array.isArray(data.socialNetworks) ? data.socialNetworks : [];
-      socialNetworks.forEach(s => {
-        if (s.usage === undefined) s.usage = 0;
-        s.editing = false;
-      });
-      nextSocialId = typeof data.nextSocialId === 'number'
-        ? data.nextSocialId
-        : (socialNetworks.length > 0 ? Math.max(0, ...socialNetworks.map(s => s.id)) + 1 : 1);
-
-      socialUsageByDay = (data.socialUsageByDay && typeof data.socialUsageByDay === 'object') ? data.socialUsageByDay : {};
     } catch (err) {
       console.error('Não foi possível carregar as listas salvas:', err);
-      boards = [{ id: 1, name: 'Principal', tasks: [], doneTasks: [], nextId: 1, departmentId: null }];
-      nextBoardId = 2;
-      expandedBoardId = 1;
-      fixedTasks = [];
-      nextFixedId = 1;
-      departments = [];
-      nextDepartmentId = 1;
-      dailySchedule = {};
-      nextDailyId = 1;
-      userName = 'Gutyerrez Filho';
-      socialNetworks = [];
-      nextSocialId = 1;
-      socialUsageByDay = {};
+      resetDefaults();
     }
   }
 
@@ -1635,204 +1292,6 @@
       if (e.key === 'Escape') renderHeaderName();
     });
     inputEl.addEventListener('blur', commit);
-  }
-
-  // ---- Controle de Redes Sociais ----
-  const socialModal = document.getElementById('social-modal');
-  const socialCardBtn = document.getElementById('social-card-btn');
-  const socialModalClose = document.getElementById('social-modal-close');
-  const socialNameInput = document.getElementById('social-name-input');
-  const socialUsageInput = document.getElementById('social-usage-input');
-  const socialAddBtn = document.getElementById('social-add-btn');
-  const socialListEl = document.getElementById('social-list');
-  const socialCardCountEl = document.getElementById('social-card-count');
-  const socialTrackerEl = document.getElementById('social-tracker');
-
-  function openSocialModal() {
-    renderSocial();
-    socialModal.classList.add('open');
-    setTimeout(() => socialNameInput.focus(), 50);
-  }
-
-  function closeSocialModal() {
-    socialModal.classList.remove('open');
-  }
-
-  socialCardBtn.addEventListener('click', openSocialModal);
-  socialModalClose.addEventListener('click', closeSocialModal);
-  socialModal.addEventListener('click', (e) => {
-    if (e.target === socialModal) closeSocialModal();
-  });
-
-  function submitSocial() {
-    addSocialNetwork(socialNameInput.value, socialUsageInput.value);
-    socialNameInput.value = '';
-    socialUsageInput.value = '';
-    socialNameInput.focus();
-  }
-  socialAddBtn.addEventListener('click', submitSocial);
-  socialNameInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); submitSocial(); }
-  });
-  socialUsageInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); submitSocial(); }
-  });
-
-  function addSocialNetwork(name, usage) {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    const usageNum = Math.max(0, parseInt(usage, 10) || 0);
-    socialNetworks.push({ id: nextSocialId++, name: trimmed, usage: usageNum, editing: false });
-    saveToStorage();
-    renderSocial();
-  }
-
-  function deleteSocialNetwork(id) {
-    socialNetworks = socialNetworks.filter(s => s.id !== id);
-    saveToStorage();
-    renderSocial();
-  }
-
-  function updateSocialUsage(id, value) {
-    const item = socialNetworks.find(s => s.id === id);
-    if (!item) return;
-    item.usage = Math.max(0, parseInt(value, 10) || 0);
-    saveToStorage();
-    renderSocial();
-  }
-
-  function startSocialEdit(id) {
-    const item = socialNetworks.find(s => s.id === id);
-    if (!item) return;
-    item.editing = true;
-    renderSocial();
-  }
-
-  function saveSocialEdit(id, newName) {
-    const item = socialNetworks.find(s => s.id === id);
-    if (!item) return;
-    const trimmed = newName.trim();
-    if (trimmed) item.name = trimmed;
-    item.editing = false;
-    saveToStorage();
-    renderSocial();
-  }
-
-  function renderSocial() {
-    if (socialCardCountEl) socialCardCountEl.textContent = socialNetworks.length;
-    if (!socialListEl) return;
-
-    socialListEl.innerHTML = '';
-
-    if (socialNetworks.length === 0) {
-      socialListEl.innerHTML = '<li style="all:unset; cursor:default;"><div class="empty-msg" style="width:100%">Nenhuma rede social cadastrada.</div></li>';
-      renderSocialTracker();
-      return;
-    }
-
-    socialNetworks.forEach(item => {
-      const li = document.createElement('li');
-      li.className = 'social-item';
-
-      if (item.editing) {
-        li.innerHTML = `
-          <input type="text" class="edit-input" value="${escAttr(item.name)}">
-          <button class="edit-btn" title="Salvar">&#10003;</button>
-        `;
-        const editInput = li.querySelector('.edit-input');
-        li.querySelector('.edit-btn').addEventListener('click', () => saveSocialEdit(item.id, editInput.value));
-        editInput.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') saveSocialEdit(item.id, editInput.value);
-          if (e.key === 'Escape') { item.editing = false; renderSocial(); }
-        });
-        socialListEl.appendChild(li);
-        editInput.focus();
-        editInput.select();
-        return;
-      }
-
-      li.innerHTML = `
-        <span class="social-name"></span>
-        <input type="number" class="social-usage-input-inline" min="0" value="${item.usage}">
-        <span class="social-usage-label">meta/dia</span>
-        <button class="edit-btn" title="Editar">&#9998;</button>
-        <button class="delete-btn" title="Excluir">&times;</button>
-      `;
-      li.querySelector('.social-name').textContent = item.name;
-      li.querySelector('.social-usage-input-inline').addEventListener('change', (e) => updateSocialUsage(item.id, e.target.value));
-      li.querySelector('.edit-btn').addEventListener('click', () => startSocialEdit(item.id));
-      li.querySelector('.delete-btn').addEventListener('click', () => deleteSocialNetwork(item.id));
-      socialListEl.appendChild(li);
-    });
-
-    renderSocialTracker();
-  }
-
-  // Marcação diária (bolinhas) de uso de redes sociais, mostrada no topo da página
-  function getTodaySocialUsage() {
-    const key = getTodayKey();
-    if (!socialUsageByDay[key]) socialUsageByDay[key] = {};
-    return socialUsageByDay[key];
-  }
-
-  function getSocialUsedCount(id) {
-    const key = getTodayKey();
-    const day = socialUsageByDay[key];
-    return (day && typeof day[id] === 'number') ? day[id] : 0;
-  }
-
-  function setSocialUsedCount(id, count) {
-    const net = socialNetworks.find(s => s.id === id);
-    const max = net ? Math.max(0, net.usage || 0) : 0;
-    const clamped = Math.max(0, Math.min(count, max));
-    const day = getTodaySocialUsage();
-    day[id] = clamped;
-    saveToStorage();
-    renderSocialTracker();
-  }
-
-  function toggleSocialDot(id, index) {
-    const current = getSocialUsedCount(id);
-    setSocialUsedCount(id, current > index ? index : index + 1);
-  }
-
-  function renderSocialTracker() {
-    if (!socialTrackerEl) return;
-    socialTrackerEl.innerHTML = '';
-
-    socialNetworks.forEach(net => {
-      const target = Math.max(0, net.usage || 0);
-      const used = getSocialUsedCount(net.id);
-
-      const chip = document.createElement('div');
-      chip.className = 'social-chip';
-
-      const nameEl = document.createElement('span');
-      nameEl.className = 'social-chip-name';
-      nameEl.textContent = net.name;
-      chip.appendChild(nameEl);
-
-      if (target > 0) {
-        const dots = document.createElement('div');
-        dots.className = 'social-dots';
-        for (let i = 0; i < target; i++) {
-          const dot = document.createElement('button');
-          dot.type = 'button';
-          dot.className = 'social-dot' + (i < used ? ' filled' : '');
-          dot.title = `${net.name}: ${i + 1}/${target} hoje`;
-          dot.addEventListener('click', () => toggleSocialDot(net.id, i));
-          dots.appendChild(dot);
-        }
-        chip.appendChild(dots);
-      } else {
-        const hint = document.createElement('span');
-        hint.className = 'social-chip-hint';
-        hint.textContent = 'sem meta';
-        chip.appendChild(hint);
-      }
-
-      socialTrackerEl.appendChild(chip);
-    });
   }
 
   // ---- Modais ----
@@ -2121,7 +1580,7 @@
     if (taskIndex === -1) return;
 
     const [task] = sourceBoard.tasks.splice(taskIndex, 1);
-    
+
     if (sourceBoardId !== targetBoardId) {
       task.id = targetBoard.nextId++;
     }
@@ -2782,7 +2241,6 @@
     renderDailyList();
     renderBoardsColumn();
     renderFixed();
-    renderSocial();
   }
 
   function renderBoardsColumn() {
@@ -3189,7 +2647,7 @@
               <button class="edit-btn" title="Salvar">&#10003;</button>
             </div>
           </div>
-          <input type="text" class="edit-input" value="${task.text.replace(/"/g, '&quot;')}">
+          <input type="text" class="edit-input" value="${escAttr(task.text)}">
         `;
         const editInput = li.querySelector('.edit-input');
         editInput.addEventListener('click', (e) => e.stopPropagation());
